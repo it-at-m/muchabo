@@ -1,0 +1,10 @@
+# muchabo backend
+
+FastAPI service scaffolded with uv.
+
+## Start
+
+```bash
+uv sync
+uv run python main.py
+```
