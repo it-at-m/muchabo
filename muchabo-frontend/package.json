@@ -11,6 +11,9 @@
     "lint": "prettier --check .",
     "fix": "prettier --write ."
   },
+  "engines": {
+    "node": ">=24.11 <=24"
+  },
   "dependencies": {
     "vue": "3.5.27"
   },
