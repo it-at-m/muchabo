@@ -1,0 +1,20 @@
+services:
+  
+  backend:
+    build:
+      context: ./muchabo-backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    ports:
+      - "8080:8080"
+  
+  
+  frontend:
+    build:
+      context: ./muchabo-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+  
+  
