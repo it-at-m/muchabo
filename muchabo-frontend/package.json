@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite",
     "test": "vitest run",
-    "build": "vue-tsc --build && vite build",
+    "build": "vue-tsc --build --noCheck && vite build",
     "preview": "vite preview",
     "typecheck": "vue-tsc --build --noEmit",
-    "lint": "prettier --check .",
+    "lint": "prettier --check . && vue-tsc --build --noEmit",
     "fix": "prettier --write ."
   },
   "engines": {
