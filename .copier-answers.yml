@@ -1,0 +1,19 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 0524a9c
+_src_path: https://github.com/it-at-m/python-templates.git
+backend: true
+backend_ubi10_base_image: registry.access.redhat.com/ubi10/ubi-minimal:10.1-1775622738
+frontend: true
+job: false
+maintainers:
+- freinold
+- illuminate97
+- shteenft
+- DomixD
+module_name: muchabo
+oci_authors: Landeshauptstadt München <opensource@muenchen.de>
+oci_license: MIT
+oci_vendor: Landeshauptstadt München
+project_name: muchabo
+repository_owner: it-at-m
+short_description: Munich Chatbot Framework & Platform

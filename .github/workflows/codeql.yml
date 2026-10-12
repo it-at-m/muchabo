@@ -8,7 +8,7 @@ env:
   # Whether to analyze JavaScript/TypeScript/Vue code or not (only set to true if repo has Javascript/Typescript/Vue source code)
   analyze-javascript-typescript-vue: true
   # Whether to analyze Python code or not (only set to true if repo has Python source code)
-  analyze-python: false
+  analyze-python: true
   # Whether to analyze GitHub Actions and Workflows or not (only set to true if repo has GitHub Actions or Workflows)
   analyze-actions: true
   # Query set to use when analyzing the source code (e.g. default, security-extended, security-and-quality)
@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build-path: ["./backend", "./eai"] # JSON array formatted as string, contains the paths to the java projects to build
+        build-path: ["./admin-backend"] # JSON array formatted as string, contains the paths to the java projects to build
     steps:
       - uses: it-at-m/lhm_actions/action-templates/actions/action-codeql@54b32c7d11363cad45838c9a3d8a8560b93f0e8c # v1.5.4
         with:

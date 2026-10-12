@@ -21,8 +21,7 @@ on:
         description: Service-Name
         required: true
         options: # Add or modify paths according to your project structure
-          - backend
-          - eai
+          - admin-backend
 
 jobs:
   release-maven-artifact:

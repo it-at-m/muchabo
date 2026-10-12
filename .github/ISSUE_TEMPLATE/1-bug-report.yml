@@ -56,9 +56,10 @@ body:
       multiple: true
       description: Name(s) of the affected component(s) (if applicable)
       options:
-        - frontend
-        - backend
-        - eai
+        - admin-frontend
+        - muchabo-frontend
+        - admin-backend
+        - muchabo-backend
         - webcomponent
         - stack
         - cicd

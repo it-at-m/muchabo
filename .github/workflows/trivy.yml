@@ -32,10 +32,11 @@ jobs:
       with:
         filters: |
           docs: docs/**
-          backend: backend/**
-          frontend: frontend/**
+          admin-backend: admin-backend/**
+          admin-frontend: admin-frontend/**
+          muchabo-backend: muchabo-backend/**
+          muchabo-frontend: muchabo-frontend/**
           webcomponent: webcomponent/**
-          eai: eai/**
     - run: |
         echo ${{ toJSON(steps.filter.outputs.changes) }}
         
