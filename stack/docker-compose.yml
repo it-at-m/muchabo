@@ -1,4 +1,4 @@
-name: refarch-stack
+name: muchabo-stack
 
 x-healthcheck: &healthcheck
   interval: 30s
