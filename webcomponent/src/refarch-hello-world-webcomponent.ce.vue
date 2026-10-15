@@ -36,7 +36,7 @@ import mucIconsSprite from "@muenchen/muc-patternlab-vue/assets/icons/muc-icons.
 import { computed, onMounted, ref } from "vue";
 
 import { ApiFactory } from "@/api/ApiFactory.ts";
-import { ActuatorApi } from "@/api/generated/refarch-backend";
+import { ActuatorApi } from "@/api/generated/admin-backend";
 import { checkHealth } from "@/api/healthstate-client";
 import { FIRSTNAME_DEFAULT } from "@/util/constants";
 

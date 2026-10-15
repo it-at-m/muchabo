@@ -10,10 +10,10 @@
     </parent>
 
     <groupId>de.muenchen.oss.muchabo</groupId>
-    <artifactId>muchabo-backend</artifactId>
+    <artifactId>admin-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
-    <name>muchabo-backend</name>
+    <name>admin-backend</name>
     <description>Backend component for muchabo admin</description>
     <url>https://github.com/it-at-m/muchabo</url>
     <licenses>
