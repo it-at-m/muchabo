@@ -1,5 +1,6 @@
 package de.muenchen.oss.refarch.backend.mcp;
 
+import de.muenchen.oss.refarch.backend.chatbot.ChatbotConfig;
 import de.muenchen.oss.refarch.backend.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -33,4 +34,10 @@ public class ChatbotTool extends BaseEntity {
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "chatbot_config_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private ChatbotConfig chatbotConfig;
 }

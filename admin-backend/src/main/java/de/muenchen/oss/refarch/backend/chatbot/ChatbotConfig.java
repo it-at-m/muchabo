@@ -55,9 +55,9 @@ public class ChatbotConfig extends BaseEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "chatbot_config_id", nullable = false)
+    @OneToMany(mappedBy = "chatbotConfig", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<ChatbotTool> chatbotTools = new ArrayList<>();
+
 }
