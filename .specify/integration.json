@@ -2,14 +2,14 @@
   "version": "1.2.4",
   "integration_state_schema": 1,
   "installed_integrations": [
-    "none"
+    "opencode"
   ],
   "integration_settings": {
-    "none": {
+    "opencode": {
       "script": "sh",
       "invoke_separator": "."
     }
   },
-  "integration": "none",
-  "default_integration": "none"
+  "integration": "opencode",
+  "default_integration": "opencode"
 }
