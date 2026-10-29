@@ -1,20 +1,26 @@
 <!--
 Sync Impact Report (temporary review material; remove before committing)
-Version change: 1.0.0 → 2.0.0
+Version change: 1.0.0 → 2.1.0 (includes dependency-policy amendment from 2.0.0)
 Rationale: incompatible redefinition of the governance baseline, fixed framework decisions,
   and mandatory quality gates replacing discretionary compliance exceptions.
+Dependency-policy amendment: compatible expansion of permitted upstream dependencies;
+stable-major requirements apply to directly selected core libraries, while required upstream
+dependencies may use 0.x or prerelease versions when compatible and locked.
 Modified principles (prior guidance redistributed into the following principles/section):
 - I. Clear Component Boundaries → Technology and Operational Constraints; II. Config over Code
 - II. Explicit Integration Contracts → II. Config over Code; IX. Testing and Quality Gates
 - III. Evidence-Based Verification → IX. Testing and Quality Gates
 - IV. Reproducible Builds and Configuration → X. Production Readiness;
   IV. Security and Data Protection by Design
+- X. Production Readiness: clarify core-library scope and permit required upstream dependencies.
 - V. Maintainable and Documented Changes → I. Simplicity First;
   VII. Clean, Maintainable Code; VIII. Documentation
 Added principles: III. Stateless, Scalable Runtime; V. Human Oversight;
   VI. Observability; XI. User Experience.
 Added sections: none; existing technology, workflow, and governance sections expanded.
 Removed sections: none; discretionary compliance-exception procedure removed.
+Amendment follow-up: core-agent-backend plan and research synchronized; dependency-policy
+blocker resolved. No technology replacement or application migration required.
 Deferred items:
 - TODO(RATIFICATION_DATE): Maintainers must confirm the original adoption date;
   no ratification date was recorded in the prior constitution.
@@ -167,9 +173,15 @@ Deferred items:
 
 ### X. Production Readiness
 
-- Runtime dependencies in every part MUST use stable releases only. Core libraries MUST NOT
-  use beta or `0.x` releases. Runtime dependencies MUST have exact pinned versions and a
-  documented upgrade path.
+- Directly selected core libraries, including the agent framework and tracing SDK, MUST use
+  stable major releases and MUST NOT use beta or `0.x` releases. This restriction does not
+  apply to required upstream dependencies or the established supporting stack.
+- Required upstream dependencies MAY use `0.x` or prerelease versions when required by the
+  selected libraries' declared dependency constraints. They MUST remain compatible with those
+  constraints and MUST be resolved to exact versions in committed lockfiles. This includes
+  coordinated OpenTelemetry dependencies required by the stable Langfuse SDK.
+- Direct runtime dependencies MUST have exact pinned versions and a documented upgrade path;
+  the complete resolved dependency graph MUST be recorded in committed lockfiles.
 - Dependency changes MUST update manifests and committed lockfiles together. Builds MUST use
   locked installation paths, including frozen Python dependencies and clean npm installations
   where configured.
@@ -276,4 +288,4 @@ justifications, and required quality gates are respected. Amendments MUST identi
 guidance requiring follow-up. The temporary Sync Impact Report MUST be removed before the
 amended constitution is committed.
 
-**Version**: 2.0.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-10-28
+**Version**: 2.1.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-10-29
