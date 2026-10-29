@@ -4,6 +4,8 @@ on:
     pull_request:
         paths:
             - "muchabo-backend/**"
+            - "contracts/bot-spec/**"
+            - "ruff.toml"
             - ".github/workflows/backend-tests.yml"
 
 permissions:
@@ -21,6 +23,12 @@ jobs:
               with:
                   python-version-file: "muchabo-backend/.python-version"
             - name: Install dependencies
-              run: uv sync --group dev
+              run: uv sync --frozen --group dev
             - name: Run backend tests
-              run: uv run pytest
+              run: uv run --frozen pytest
+            - name: Check Python lint
+              run: uv run --frozen ruff check --config ../ruff.toml .
+            - name: Check Python formatting
+              run: uv run --frozen ruff format --check --config ../ruff.toml .
+            - name: Check Python types
+              run: uv run --frozen ty check

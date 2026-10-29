@@ -1,0 +1,7 @@
+[
+  {"type": "RUN_STARTED", "threadId": "e081411f-7d4a-4f42-a1d3-f397d893eb69", "runId": "667c3224-f6aa-40da-a651-75027469c897"},
+  {"type": "TEXT_MESSAGE_START", "messageId": "6783b614-02be-45e4-9f97-02e05d5c9a58", "role": "assistant"},
+  {"type": "TEXT_MESSAGE_CONTENT", "messageId": "6783b614-02be-45e4-9f97-02e05d5c9a58", "delta": "Hello."},
+  {"type": "TEXT_MESSAGE_END", "messageId": "6783b614-02be-45e4-9f97-02e05d5c9a58"},
+  {"type": "RUN_FINISHED", "threadId": "e081411f-7d4a-4f42-a1d3-f397d893eb69", "runId": "667c3224-f6aa-40da-a651-75027469c897"}
+]
