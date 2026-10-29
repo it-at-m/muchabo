@@ -1,6 +1,6 @@
 # Quickstart and Validation: Minimal Core Agent Backend
 
-**Status**: Guide for the planned implementation. The current scaffold does not yet serve the agent endpoint or contain the new tests.
+**Status**: Core runtime implemented; controlled acceptance checks pass. Live producer/frontend activation requires the prerequisites below.
 
 ## Prerequisites
 
@@ -83,5 +83,35 @@ Producer-side bot-spec schema checks and frontend-side AG-UI conformance must pa
 ## Shutdown and upgrades
 
 Stop the service gracefully. Drain active streams, close HTTP clients, flush/shut down Langfuse off the event loop, and shut down the owned OTEL provider. Do not flush telemetry on every request.
+
+## Implementation verification record
+
+- Stable Python 3.14.4; frozen uv installation verified with all exact agent/tracing/SDK pins.
+- User-installed supporting updates retained: pydantic-settings 2.16.2, pytest 9.2.0, ty 0.0.94; jsonschema 4.26.0 is dev-only.
+- US1 focused suite: 92 passing checks in 10.81 seconds, including SC-001 ten exact replies, SC-004 ten concurrent isolated replies, and SC-005 in-flight v1/next-request v2 refresh without edits or redeployment.
+- SC-003: invalid transport/input/configuration, access denial, admin failure/deadline, model failure, timeout, and disconnect checks passed; exported traces/logs contained none of the seeded content/credential sentinels.
+- Timeout integration uses a shortened test-only deadline for native RunTimedOut/cancellation behavior; production limits remain fixed at 5/20/25/30 seconds. The actual five-second admin deadline was measured independently.
+- Shared/native generated schemas and strict fixture parity passed, including explicit cross-field identity checks and trailing-newline rejection.
+- These results use controlled admin/model/telemetry services. No live admin endpoint, frontend AG-UI conformance, Langfuse delivery, or bot activation/evaluation was claimed.
+- Final backend suite: **116 passing tests in 8.93 seconds**, **97% runtime coverage**; frozen install, Ruff lint/format and ty checks passed. Final boundary checks also cover deeply nested malformed JSON without raw failures.
+- SC-002: root-context Podman image performed a fresh frozen Linux installation on stable Python 3.14.4; a network-disabled container completed valid startup/health and an exact controlled first reply in 0.082 seconds after installation. This is automated controlled-service evidence, not a timed live maintainer deployment.
+- Container packaging checks passed for UID 1001, both published schemas and fixture inputs, and absence of credential/test/unrelated component files. The original unavailable UBI tag was replaced by the verified UBI 10.1 multi-platform digest; user-management tooling and a non-root-readable managed interpreter location were fixed from actual build failures.
+- SC-006: README maps configuration, caller context, execution and delivery to the four core responsibilities and current FR requirements; tracing/settings remain supporting current requirements. No speculative capability scaffolding was introduced.
+- Final Podman rebuild and network-disabled non-root smoke passed: startup/reply 0.310 seconds and three exported native/request spans with the fixed allowlist. Native model usage is not duplicated on the owned request span. No live services were contacted by this smoke check.
+- Four changed YAML configs parsed; six public JSON artifacts parsed with local-only schema references; 25 relative Markdown links resolved; git whitespace check passed. CI now uses frozen installation/execution and Ruff/ty gates; contract paths trigger runtime/admin change filters. Remote CI jobs and arm64 image execution were not run locally.
+- The final image's actual frozen uv/main.py entrypoint started on port 8080, answered health with external networking disabled, and stopped gracefully. Uvicorn access logging is disabled; the health request emitted no caller IP/raw URL access record. The temporary validation container was removed.
+
+## Container validation
+
+From repository root (Podman is the local validation engine; Docker uses the same Dockerfile):
+
+```bash
+podman build -f muchabo-backend/Dockerfile -t localhost/muchabo-backend:local .
+podman compose up --build backend
+```
+
+Compose requires its provider and the root uncommitted `.env`. For live curl validation,
+provision the documented services and reader token; the network-disabled image smoke
+check uses native model/admin/exporter substitutes instead.
 
 For an upgrade, update exact dependency pins and `uv.lock` together, regenerate native schema exports, and run schema/AG-UI parity, unit, integration, and evaluation checks. Do not activate a changed bot/model until its regression suite passes. The Python container must build from the repository root so published shared contract artifacts are included; update compose/workflow build contexts with that change.

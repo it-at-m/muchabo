@@ -1,0 +1,11 @@
+{
+  "schema_version": "1",
+  "bot_id": "demo",
+  "version": "v1",
+  "access_policy": "anonymous",
+  "agent": {
+    "model": "public-chat",
+    "name": "demo",
+    "instructions": "You are an AI assistant. Answer the user's message briefly."
+  }
+}

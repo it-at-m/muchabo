@@ -484,3 +484,4 @@ nbdist/
 
 # Custom
 .claude/settings.local.json
+Thumbs.db

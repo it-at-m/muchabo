@@ -4,7 +4,7 @@
 
 **Input**: Feature specification from `specs/001-core-agent-backend/spec.md`
 
-**Status**: Phase 0 research and Phase 1 design complete; ready for `/speckit.tasks`.
+**Status**: Implementation complete; frozen checks and Podman container validation passed. See [quickstart evidence](quickstart.md).
 
 **Feature identifier**: `001-core-agent-backend`. The setup script reports this identifier as `BRANCH`; Git confirms the actual branch shown above. Feature paths are resolved independently through `.specify/feature.json`.
 
@@ -124,6 +124,28 @@ contracts/bot-spec/          # Shared public schema and fixtures, packaged by bo
 Implementation must add the missing lockfile, publish shared contracts, and include them in component builds. Change the Python Docker build context to repository root with narrowly scoped COPY paths; update `compose.yaml` and Python image workflow contexts accordingly. Add public contract paths to affected CI filters and frozen Python install/formatter/type checks. Admin endpoint/UI code is outside this increment; its packaging/conformance obligations are documented for the integration owner.
 
 ## Complexity Tracking
+
+### Implementation outcome
+
+Implementation follows constitution 2.1.1: every Python operation uses uv and
+installation is frozen. Native AgentSpec, explicit LiteLLM provider, adapter APIs,
+timeout callback and native Langfuse masking/exporter hooks were verified against
+the installed pinned packages. User-installed supporting updates were retained:
+pydantic-settings 2.16.2, pytest 9.2.0 and ty 0.0.94. jsonschema 4.26.0 is dev-only.
+
+All core acceptance and quality checks passed; current results are recorded in
+quickstart. Podman built and ran the Linux image with stable Python 3.14.4, a
+non-root user, bundled contracts and a controlled first reply. Actual build fixes
+retain UBI 10.1 while pinning its published multi-platform digest, install the
+missing user-management utility, and put the managed interpreter in a non-root-readable
+location outside /root. main.py/port 8080 remain the runtime entry path through uv.
+
+The shared identifier schema explicitly excludes non-identifier characters so
+JSON Schema's trailing-newline anchor behavior matches native validation. Native
+usage is emitted once at the model-call level; owned request diagnostics do not
+duplicate model usage. Langfuse exports only the runtime/native instrumentation
+scopes and the fixed attribute allowlist. Live producer/frontend/evaluation
+prerequisites remain external and are not claimed by controlled consumer proof.
 
 No prohibition is waived. Pydantic AI serves the requested agent execution, AG-UI, and native configuration capabilities; Langfuse serves mandatory tracing. Existing FastAPI and the standard library cannot provide these framework capabilities. Slim installation minimizes unused integrations.
 

@@ -50,3 +50,16 @@ The Python image must package the shared artifacts: change its build context to 
 Run the same valid/invalid fixture corpus on both sides. It must include unknown fields, nulls/coercible numbers, whitespace messages, template syntax, unsupported agent capabilities, mismatched IDs/name, and unsupported schema versions. Core runtime parsing uses Pydantic and native AgentSpec; no production Python schema-validator wrapper is introduced. Schema-validation tooling may be used in contract tests and by the producer where required.
 
 Admin endpoint implementation and identity provisioning are prerequisites owned by the admin component, outside this runtime feature. Controlled producer substitutes prove runtime behavior; producer-side contract checks must pass before live integration. This contract is additive to the scaffold API.
+
+## Implementation handoff
+
+Published artifacts now live in [contracts/bot-spec/](../../../contracts/bot-spec/README.md),
+including generated native AgentSpec 2.63.0 and supported-envelope schemas plus shared
+valid/invalid bot and AG-UI fixtures. The Python image bundles those trusted resources.
+
+The Java owner must package and validate these same artifacts and implement the read
+endpoint, dedicated spec-reader principal, issuer/audience checks and activation/version
+semantics. The frontend owner must demonstrate native AG-UI request/event conformance.
+The bot owner must provide passing evaluation/regression evidence before activation.
+These integration prerequisites remain open in the existing component scaffolds;
+passing Python consumer mocks does not mark them complete.
