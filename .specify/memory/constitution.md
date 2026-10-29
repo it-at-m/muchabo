@@ -1,6 +1,6 @@
 <!--
 Sync Impact Report (temporary review material; remove before committing)
-Version change: 1.0.0 → 2.1.0 (includes dependency-policy amendment from 2.0.0)
+Version change: 1.0.0 → 2.1.1 (includes dependency-policy amendment from 2.0.0)
 Rationale: incompatible redefinition of the governance baseline, fixed framework decisions,
   and mandatory quality gates replacing discretionary compliance exceptions.
 Dependency-policy amendment: compatible expansion of permitted upstream dependencies;
@@ -21,6 +21,9 @@ Added sections: none; existing technology, workflow, and governance sections exp
 Removed sections: none; discretionary compliance-exception procedure removed.
 Amendment follow-up: core-agent-backend plan and research synchronized; dependency-policy
 blocker resolved. No technology replacement or application migration required.
+Tooling clarification (2.1.0 → 2.1.1): all Python operations MUST use uv commands,
+including interpreter management, dependency operations, scripts, tests, and quality checks.
+Existing frozen uv commands remain valid; future commands and documentation must follow this rule.
 Deferred items:
 - TODO(RATIFICATION_DATE): Maintainers must confirm the original adoption date;
   no ratification date was recorded in the prior constitution.
@@ -185,6 +188,12 @@ Deferred items:
 - Dependency changes MUST update manifests and committed lockfiles together. Builds MUST use
   locked installation paths, including frozen Python dependencies and clean npm installations
   where configured.
+- All Python operations MUST use `uv` commands in local development, coding-agent sessions,
+  CI, and container builds. Manage interpreters with `uv python`, dependencies and environments
+  with `uv` commands, and execute Python scripts, diagnostics, tests, linters, and type checkers
+  through `uv run`. Direct interpreter paths, bare `python`/`python3`, `pip`, and standalone
+  Python-tool invocations MUST NOT bypass uv. Project execution MUST use `uv run --frozen`
+  after lockfile creation; dependency installation MUST use `uv sync --frozen`.
 - External calls MUST have explicit timeouts and bounded retries. Retry policy MUST account
   for side effects so an approved action is not inadvertently executed twice.
 - Users MUST receive a meaningful response on failure instead of a raw error. Responses MUST
@@ -288,4 +297,4 @@ justifications, and required quality gates are respected. Amendments MUST identi
 guidance requiring follow-up. The temporary Sync Impact Report MUST be removed before the
 amended constitution is committed.
 
-**Version**: 2.1.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-10-29
+**Version**: 2.1.1 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-10-29
