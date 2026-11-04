@@ -1,7 +1,7 @@
 {
   "_comment": "TEMPORARY TRANSITIVE DEPENDENCY OVERRIDES FOR SECURITY FIXES",
   "overrides": {},
-  "name": "refarch-frontend",
+  "name": "admin-frontend",
   "version": "0.0.0",
   "type": "module",
   "private": true,
