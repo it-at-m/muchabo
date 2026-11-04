@@ -1,0 +1,94 @@
+{
+  "additionalProperties": false,
+  "description": "Versioned platform envelope containing the native AgentSpec.",
+  "properties": {
+    "schema_version": {
+      "const": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "bot_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "not": {
+        "pattern": "[^a-z0-9_-]"
+      },
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "title": "Bot Id",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "not": {
+        "pattern": "[^a-z0-9_-]"
+      },
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "title": "Version",
+      "type": "string"
+    },
+    "access_policy": {
+      "enum": [
+        "anonymous",
+        "authenticated"
+      ],
+      "title": "Access Policy",
+      "type": "string"
+    },
+    "agent": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "\\S",
+          "type": "string"
+        },
+        "instructions": {
+          "allOf": [
+            {
+              "pattern": "\\S"
+            },
+            {
+              "not": {
+                "pattern": "\\{\\{"
+              }
+            },
+            {
+              "not": {
+                "pattern": "\\}\\}"
+              }
+            }
+          ],
+          "maxLength": 16000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 64,
+          "minLength": 1,
+          "not": {
+            "pattern": "[^a-z0-9_-]"
+          },
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "instructions"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "bot_id",
+    "version",
+    "access_policy",
+    "agent"
+  ],
+  "title": "BotSpec",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

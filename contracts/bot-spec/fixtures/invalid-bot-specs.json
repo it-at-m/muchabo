@@ -1,0 +1,8 @@
+[
+  {"schema_version": 1, "bot_id": "demo", "version": "v1", "access_policy": "anonymous", "agent": {"model": "public-chat", "instructions": "Hello."}},
+  {"schema_version": "1", "bot_id": "demo", "version": "v1", "access_policy": "anonymous", "agent": {"model": "public-chat", "instructions": "Hello {{ user }}."}},
+  {"schema_version": "1", "bot_id": "demo", "version": "v1", "access_policy": "anonymous", "agent": {"model": "public-chat", "instructions": "Hello.", "capabilities": []}},
+  {"schema_version": "1", "bot_id": "demo", "version": null, "access_policy": "anonymous", "agent": {"model": "public-chat", "instructions": "Hello."}},
+  {"schema_version": "1", "bot_id": "demo", "version": "v1", "access_policy": "anonymous", "agent": {"model": "public-chat", "name": "other", "instructions": "Hello."}},
+  {"schema_version": "1", "bot_id": "other", "version": "v1", "access_policy": "anonymous", "agent": {"model": "public-chat", "instructions": "Hello."}}
+]

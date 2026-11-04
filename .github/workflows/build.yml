@@ -27,6 +27,7 @@ jobs:
           filters: |
             admin-backend:
               - admin-backend/**
+              - contracts/bot-spec/**
               - .github/workflows/build.yml
             admin-frontend:
               - admin-frontend/**
@@ -34,6 +35,9 @@ jobs:
               - .github/workflows/build.yml
             muchabo-backend:
               - muchabo-backend/**
+              - contracts/bot-spec/**
+              - .dockerignore
+              - ruff.toml
               - .github/workflows/build.yml
             muchabo-frontend:
               - muchabo-frontend/**
@@ -96,10 +100,18 @@ jobs:
           python-version-file: ${{ matrix.app-path }}/.python-version
       - name: Install dependencies
         working-directory: ./${{ matrix.app-path }}
-        run: uv sync --group dev
+        run: uv sync --frozen --group dev
       - name: Run backend tests
         working-directory: ./${{ matrix.app-path }}
-        run: uv run pytest
+        run: uv run --frozen pytest
+      - name: Check Python lint and formatting
+        working-directory: ./${{ matrix.app-path }}
+        run: |
+          uv run --frozen ruff check --config ../ruff.toml .
+          uv run --frozen ruff format --check --config ../ruff.toml .
+      - name: Check Python types
+        working-directory: ./${{ matrix.app-path }}
+        run: uv run --frozen ty check
       - if: ${{ github.ref == 'refs/heads/main' }}
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
       - if: ${{ github.ref == 'refs/heads/main' }}
@@ -120,7 +132,8 @@ jobs:
       - if: ${{ github.ref == 'refs/heads/main' }}
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
-          context: ./${{ matrix.app-path }}
+          context: .
+          file: ./muchabo-backend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
