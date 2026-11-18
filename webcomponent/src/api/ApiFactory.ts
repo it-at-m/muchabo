@@ -1,7 +1,7 @@
-import type { HTTPHeaders } from "@/api/generated/refarch-backend";
+import type { HTTPHeaders } from "@/api/generated/admin-backend";
 
 import { getHeaders } from "@/api/fetch-utils.ts";
-import { BaseAPI, Configuration } from "@/api/generated/refarch-backend";
+import { BaseAPI, Configuration } from "@/api/generated/admin-backend";
 import { BASE_API_PATH } from "@/util/constants.ts";
 
 type ApiCtor<T extends BaseAPI> = new (config: Configuration) => T;
