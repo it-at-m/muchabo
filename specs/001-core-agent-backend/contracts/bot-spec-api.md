@@ -19,7 +19,7 @@
 
 HTTP `200`, `Content-Type: application/json`, `Cache-Control: no-store`.
 
-Body conforms to [bot-spec.schema.json](bot-spec.schema.json). See [valid example](fixtures/bot-spec.json). Maximum response body is 64 KiB. In addition to structural validation:
+Body conforms to [bot-spec.schema.json](../../../contracts/bot-spec/bot-spec.schema.json). See [valid example](../../../contracts/bot-spec/fixtures/bot-spec.json). Maximum response body is 64 KiB. In addition to structural validation:
 
 1. `bot_id` equals the requested path ID.
 2. Optional `agent.name` equals `bot_id`.

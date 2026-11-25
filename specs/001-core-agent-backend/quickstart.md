@@ -6,7 +6,7 @@
 
 - Python 3.14 and uv; install from the committed backend lockfile once implemented.
 - For manual live validation: an admin service implementing the [bot-spec contract](contracts/bot-spec-api.md), a read-only JWT service token with the correct issuer/audience, a LiteLLM gateway with the `public-chat` alias, and Langfuse credentials/destination.
-- Activate the [demo configuration](contracts/fixtures/bot-spec.json) through the configuration owner after its validation/evaluation gates pass. Do not create a production hardcoded runtime bot.
+- Activate the [demo configuration](../../contracts/bot-spec/fixtures/bot-spec.json) through the configuration owner after its validation/evaluation gates pass. Do not create a production hardcoded runtime bot.
 - Automated validation uses an authenticated-response admin substitute, Pydantic AI TestModel/FunctionModel, and an in-memory telemetry collector. It requires no live model, admin, or Langfuse calls.
 
 ## Install and verify
@@ -55,7 +55,7 @@ curl --fail-with-body http://localhost:8080/api/healthz
 curl --no-buffer --fail-with-body \
   -H "Content-Type: application/json" \
   -H "Accept: text/event-stream" \
-  --data-binary @specs/001-core-agent-backend/contracts/fixtures/agent-request.json \
+  --data-binary @contracts/bot-spec/fixtures/agent-request.json \
   http://localhost:8080/api/bots/demo/run
 ```
 

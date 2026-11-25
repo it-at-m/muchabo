@@ -483,5 +483,6 @@ nbdist/
 !/stack/pgadmin/data/info.txt
 
 # Custom
+.playwright-mcp/
 .claude/settings.local.json
 Thumbs.db

@@ -6,7 +6,7 @@
 
 ## Request
 
-Send `Content-Type: application/json` and `Accept: text/event-stream`. Use [request fixture](fixtures/agent-request.json), validated as native RunAgentInput plus the [single-message constraints](../data-model.md).
+Send `Content-Type: application/json` and `Accept: text/event-stream`. Use [request fixture](../../../contracts/bot-spec/fixtures/agent-request.json), validated as native RunAgentInput plus the [single-message constraints](../data-model.md).
 
 - Body limit: 64 KiB; larger payloads return `413` before execution.
 - One non-whitespace user text message, at most 16,000 characters; identifiers must be UUIDs.

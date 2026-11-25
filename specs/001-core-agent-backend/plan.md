@@ -1,6 +1,6 @@
 # Implementation Plan: Minimal Core Agent Backend
 
-**Branch**: `chore/init-speckit-constitution` | **Date**: 2026-10-29 | **Spec**: [spec.md](spec.md)
+**Branch**: `feat/core-runtime` | **Date**: 2026-10-29 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/001-core-agent-backend/spec.md`
 
@@ -83,12 +83,7 @@ specs/001-core-agent-backend/
 ├── quickstart.md
 ├── contracts/
 │   ├── bot-spec-api.md
-│   ├── bot-spec.schema.json
-│   ├── agent-runtime.md
-│   └── fixtures/
-│       ├── bot-spec.json
-│       ├── agent-request.json
-│       └── agent-events.json
+│   └── agent-runtime.md   # Schema and fixtures live only in contracts/bot-spec/.
 └── checklists/
     └── requirements.md
 ```

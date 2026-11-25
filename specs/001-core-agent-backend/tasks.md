@@ -19,7 +19,7 @@ description: "Executable tasks for the minimal shared agent-serving backend"
 ## Path Conventions
 
 - Runtime source: `muchabo-backend/muchabo/`; tests: `muchabo-backend/test/`.
-- Published shared contract: `contracts/bot-spec/`; design source: `specs/001-core-agent-backend/contracts/`.
+- Shared contract (single source of truth): `contracts/bot-spec/`; design notes: `specs/001-core-agent-backend/contracts/*.md`.
 - Public schema resources are shared interfaces, not another component's private internals.
 - Use flat modules and direct native library calls. Every new responsibility must map to a current requirement; extensibility does not justify speculative interfaces, registries, wrappers, or capability scaffolding.
 

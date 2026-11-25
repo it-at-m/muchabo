@@ -205,15 +205,10 @@ def test_exported_schemas_and_shared_fixture_corpus(bot: dict[str, Any]) -> None
     Draft202012Validator.check_schema(native)
     Draft202012Validator(native).validate(bot["agent"])
     invalid = json.loads((CONTRACT_DIR / "fixtures/invalid-bot-specs.json").read_text(encoding="utf-8"))
-    design = json.loads(
-        (CONTRACT_DIR.parents[1] / "specs/001-core-agent-backend/contracts/bot-spec.schema.json").read_text(encoding="utf-8")
-    )
     for candidate in [bot, *invalid]:
-        accepted: list[bool] = []
-        for schema in [published, design]:
-            # Both schema consumers must supplement portable structural validation with these cross-field checks.
-            matches = candidate.get("bot_id") == "demo" and candidate["agent"].get("name", "demo") == candidate.get("bot_id")
-            accepted.append(Draft202012Validator(schema).is_valid(candidate) and matches)
+        # Schema consumers must supplement portable structural validation with these cross-field checks.
+        matches = candidate.get("bot_id") == "demo" and candidate["agent"].get("name", "demo") == candidate.get("bot_id")
+        accepted = [Draft202012Validator(published).is_valid(candidate) and matches]
         try:
             BotSpec.model_validate(candidate, context={"bot_id": "demo"})
             accepted.append(True)

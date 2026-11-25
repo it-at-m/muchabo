@@ -1,6 +1,6 @@
 # Feature Specification: Minimal Core Agent Backend
 
-**Feature Branch**: `chore/init-speckit-constitution`
+**Feature Branch**: `feat/core-runtime`
 
 **Created**: 2026-10-28
 
