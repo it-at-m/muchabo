@@ -1,37 +1,36 @@
-<!--
-Sync Impact Report (temporary review material; remove before committing)
-Version change: 1.0.0 → 2.0.0
-Rationale: incompatible redefinition of the governance baseline, fixed framework decisions,
-  and mandatory quality gates replacing discretionary compliance exceptions.
-Modified principles (prior guidance redistributed into the following principles/section):
-- I. Clear Component Boundaries → Technology and Operational Constraints; II. Config over Code
-- II. Explicit Integration Contracts → II. Config over Code; IX. Testing and Quality Gates
-- III. Evidence-Based Verification → IX. Testing and Quality Gates
-- IV. Reproducible Builds and Configuration → X. Production Readiness;
-  IV. Security and Data Protection by Design
-- V. Maintainable and Documented Changes → I. Simplicity First;
-  VII. Clean, Maintainable Code; VIII. Documentation
-Added principles: III. Stateless, Scalable Runtime; V. Human Oversight;
-  VI. Observability; XI. User Experience.
-Added sections: none; existing technology, workflow, and governance sections expanded.
-Removed sections: none; discretionary compliance-exception procedure removed.
-Deferred items:
-- TODO(RATIFICATION_DATE): Maintainers must confirm the original adoption date;
-  no ratification date was recorded in the prior constitution.
--->
 # MuChaBo Constitution
 
 ## Core Principles
 
 ### I. Simplicity First
 
-- Simplicity MUST have the highest priority in implementation choices across all four parts,
+Simplicity limits **how much machinery** a feature uses, never **how well** it meets its
+requirements. Quality obligations (correct behavior, validation at boundaries, error handling,
+security, data protection, accessibility, tests, and documentation) are never reduced for
+simplicity's sake, and quality is never a reason to add machinery such as layers,
+abstractions, wrappers, options, duplicated artifacts, or scaffolding.
+
+- Simplicity MUST have the highest priority in implementation choices across all parts,
   while satisfying every applicable requirement and principle. Every feature MUST use the
   least code that meets its specification; the smallest change that works is the right change.
-- Implementations MUST use built-in features of the chosen frameworks and existing libraries
-  before adding custom code. The MuChaBo backend MUST prefer Pydantic AI agent specs,
-  capabilities, toolsets, deferred tools for approvals, the AG-UI adapter, MCP toolsets, and
-  instrumentation. Frontends MUST prefer existing UI components and the AG-UI client library.
+- **Traceability:** every new module, class, public function, setting, dependency, and file
+  MUST trace to a requirement of the current specification. Anything that does not trace
+  MUST be removed.
+- **Built-in first:** implementations MUST use built-in features of the chosen frameworks and
+  existing libraries before adding custom code. The MuChaBo backend MUST prefer Pydantic AI
+  agent specs, capabilities, toolsets, deferred tools for approvals, the AG-UI adapter, MCP
+  toolsets, and instrumentation; the admin backend MUST prefer Spring Boot facilities.
+  Frontends MUST prefer existing UI components and the AG-UI client library. When a plan adds
+  custom code, it MUST name the built-in it evaluated and why that built-in does not suffice.
+- **Trust the framework:** code MUST validate at system boundaries (incoming requests,
+  external responses, bot specs, configuration) and MUST NOT re-validate, re-wrap, or
+  re-handle what the framework or an earlier boundary already guarantees.
+- **One source of truth:** contracts, schemas, fixtures, and settings MUST exist in exactly
+  one location. Other places MUST link to or generate from that location and MUST NOT copy it.
+- **Scoped applicability:** a principle's obligations apply to a feature when the feature
+  touches the surface the principle governs (for example, approval rules once a feature adds
+  tools). Within a touched surface, the full quality bar applies; untouched surfaces MUST NOT
+  receive preparatory scaffolding.
 - Code MUST NOT introduce wrapper layers around Pydantic AI or other core libraries.
 - Code MUST NOT introduce abstract base classes, interfaces, factories, or registries for a
   single implementation. An abstraction MUST have a second real use before introduction.
@@ -42,7 +41,9 @@ Deferred items:
 - Contributors SHOULD prefer deleting redundant code over adding code, because reducing the
   maintained surface is preferable when both changes meet the same requirement.
 
-**Rationale:** Every line is maintenance cost, and coding agents tend to overengineer.
+**Rationale:** Every line is maintenance cost, and coding agents tend to overengineer. Small,
+traceable code is easier to make and keep correct, so simplicity serves quality rather than
+competing with it.
 
 ### II. Config over Code
 
@@ -123,9 +124,10 @@ Deferred items:
 
 ### VII. Clean, Maintainable Code
 
-- All parts MUST use typed code: Python MUST have full type hints, and TypeScript MUST use
-  strict mode.
-- Linter, formatter, and type-checker checks MUST pass in CI with no exceptions.
+- All parts MUST use typed code: Python MUST have full type hints, TypeScript MUST use strict
+  mode, and Java MUST avoid raw types and unchecked suppressions without a documented reason.
+- Linter, formatter, and type-checker checks MUST pass in CI with no exceptions. For the admin
+  backend these are the checks configured in its Maven build (Spotless, PMD, and SpotBugs).
 - Modules MUST have small, single responsibilities, and implementation MUST be explicit rather
   than rely on hidden behavior. Code MUST follow the affected component's established naming
   and structure.
@@ -158,8 +160,10 @@ Deferred items:
   pending-approval resumption where affected.
 - Each bot MUST have an evaluation/regression suite that passes before a spec or model change
   goes live. Failed evaluations MUST block activation of the change.
-- Tests MUST remain as simple as the code and assert observable behavior. Test frameworks and
-  fixtures MUST NOT be added beyond what the tested behavior requires.
+- Tests MUST remain as simple as the code and assert observable behavior. Every acceptance
+  scenario and edge case in the specification MUST map to at least one test. Test frameworks
+  and fixtures MUST NOT be added beyond what the tested behavior requires, and tests MUST NOT
+  exist only to compare duplicated artifacts with each other.
 - Applicable tests and quality gates MUST pass before merge. Documentation-only changes MUST
   be checked for consistency, references, and formatting.
 
@@ -167,12 +171,24 @@ Deferred items:
 
 ### X. Production Readiness
 
-- Runtime dependencies in every part MUST use stable releases only. Core libraries MUST NOT
-  use beta or `0.x` releases. Runtime dependencies MUST have exact pinned versions and a
-  documented upgrade path.
+- Directly selected core libraries, including the agent framework and tracing SDK, MUST use
+  stable major releases and MUST NOT use beta or `0.x` releases. This restriction does not
+  apply to required upstream dependencies or the established supporting stack.
+- Required upstream dependencies MAY use `0.x` or prerelease versions when required by the
+  selected libraries' declared dependency constraints. They MUST remain compatible with those
+  constraints and MUST be resolved to exact versions in committed lockfiles. This includes
+  coordinated OpenTelemetry dependencies required by the stable Langfuse SDK.
+- Direct runtime dependencies MUST have exact pinned versions and a documented upgrade path;
+  the complete resolved dependency graph MUST be recorded in committed lockfiles.
 - Dependency changes MUST update manifests and committed lockfiles together. Builds MUST use
   locked installation paths, including frozen Python dependencies and clean npm installations
   where configured.
+- All Python operations MUST use `uv` commands in local development, coding-agent sessions,
+  CI, and container builds. Manage interpreters with `uv python`, dependencies and environments
+  with `uv` commands, and execute Python scripts, diagnostics, tests, linters, and type checkers
+  through `uv run`. Direct interpreter paths, bare `python`/`python3`, `pip`, and standalone
+  Python-tool invocations MUST NOT bypass uv. Project execution MUST use `uv run --frozen`
+  after lockfile creation; dependency installation MUST use `uv sync --frozen`.
 - External calls MUST have explicit timeouts and bounded retries. Retry policy MUST account
   for side effects so an approved action is not inadvertently executed twice.
 - Users MUST receive a meaningful response on failure instead of a raw error. Responses MUST
@@ -226,9 +242,9 @@ The following technology decisions are fixed:
 - **External tools:** MCP, through Pydantic AI's built-in MCP support.
 - **Model access:** LiteLLM as the model gateway; runtime model calls MUST use that gateway.
 
-The existing supporting stack is Python with FastAPI and uv for the runtime, Vue 3 with
-TypeScript and Vite for frontend surfaces, and container execution where Docker configuration
-exists. Exact versions MUST be recorded in manifests and lockfiles rather than duplicated here.
+The existing supporting stack is Python with FastAPI and uv for the runtime, Java with Spring
+Boot and Maven for the admin backend, Vue 3 with TypeScript and Vite for frontend surfaces, and
+container execution where Docker configuration exists. Exact versions MUST be recorded in manifests and lockfiles rather than duplicated here.
 Replacing a fixed technology decision MUST require a constitutional amendment.
 
 The project MUST retain its MIT licensing and follow `CODE_OF_CONDUCT.md`. Contributions that
@@ -241,7 +257,9 @@ Contributors MUST follow `CONTRIBUTING.md`: describe enhancements in an issue ta
 and pull request MUST be checked against all applicable principles and architecture constraints.
 
 Plans MUST identify affected parts, interfaces, security context, verification, and any spec or
-model evaluation required for activation. Any added complexity, including a new abstraction,
+model evaluation required for activation. Plans MUST list what is explicitly **not built** in the
+feature, and MUST record a simplicity review before tasks are generated: could the same
+behavior and quality be delivered with less code, fewer files, or more built-ins? Any added complexity, including a new abstraction,
 new dependency, or custom code where a framework built-in exists, MUST be justified in the
 plan's **Complexity Tracking** section or rejected. A justification MUST establish a present
 requirement and explain why existing facilities do not meet it; it MUST NOT waive a prohibition
@@ -276,4 +294,4 @@ justifications, and required quality gates are respected. Amendments MUST identi
 guidance requiring follow-up. The temporary Sync Impact Report MUST be removed before the
 amended constitution is committed.
 
-**Version**: 2.0.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-10-28
+**Version**: 2.2.0 | **Ratified**: 2026-11-23 | **Last Amended**: 2026-11-25

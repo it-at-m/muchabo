@@ -48,7 +48,7 @@ jobs:
                   echo "repo_lowercase=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
             - uses: docker/build-push-action@v6.18.0
               with:
-                  context: ./muchabo-backend
+                  context: .
                   file: ./muchabo-backend/Dockerfile
                   push: true
                   sbom: true

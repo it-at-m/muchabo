@@ -1,0 +1,9 @@
+{
+  "threadId": "e081411f-7d4a-4f42-a1d3-f397d893eb69",
+  "runId": "667c3224-f6aa-40da-a651-75027469c897",
+  "messages": [{"id": "d98ab7dd-790b-422e-a31a-ad6a2fca3fe6", "role": "user", "content": "Hello."}],
+  "state": {},
+  "tools": [],
+  "context": [],
+  "forwardedProps": {}
+}
