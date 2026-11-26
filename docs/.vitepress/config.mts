@@ -1,4 +1,4 @@
-import { defineConfig } from "vitepress"
+import { defineConfig } from "vitepress";
 
 export default defineConfig({
   title: "muchabo",
@@ -7,4 +7,4 @@ export default defineConfig({
     nav: [{ text: "Home", link: "/" }],
     sidebar: [{ text: "Introduction", items: [{ text: "Home", link: "/" }] }],
   },
-})
+});

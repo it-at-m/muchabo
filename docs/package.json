@@ -1,6 +1,8 @@
 {
   "_comment": "TEMPORARY TRANSITIVE DEPENDENCY OVERRIDES FOR SECURITY FIXES",
   "overrides": {
+    "katex": "0.18.2",
+    "minimatch@>=7": "11.0.1",
     "vitepress": {
       "vite": "6.4.5"
     }
