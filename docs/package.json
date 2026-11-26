@@ -1,18 +1,32 @@
 {
+  "_comment": "TEMPORARY TRANSITIVE DEPENDENCY OVERRIDES FOR SECURITY FIXES",
+  "overrides": {
+    "vitepress": {
+      "vite": "6.4.5"
+    }
+  },
   "name": "muchabo-docs",
-  "private": true,
+  "version": "0.0.0",
   "type": "module",
-  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=26.13 <27",
+    "npm": ">=11.20 <12"
+  },
   "scripts": {
-    "dev": "vitepress dev .",
-    "build": "vitepress build .",
-    "preview": "vitepress preview .",
-    "lint": "prettier --check .",
-    "fix": "prettier --write ."
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "lint": "prettier . --check --cache && markdownlint .",
+    "fix": "prettier . --write --cache && markdownlint -f ."
   },
   "devDependencies": {
     "@muenchen/prettier-codeformat": "1.0.2",
-    "prettier": "3.5.3",
-    "vitepress": "1.6.4"
+    "markdownlint-cli": "0.50.0",
+    "mermaid": "11.17.2",
+    "prettier": "3.10.1",
+    "vitepress": "1.6.4",
+    "vitepress-plugin-mermaid": "2.0.17"
   }
 }
