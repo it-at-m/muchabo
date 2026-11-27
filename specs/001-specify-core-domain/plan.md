@@ -1,55 +1,78 @@
-# Implementation Plan: Dokumentation des Datenbankschema-Ist-Zustands
+# Implementation Plan: Admin Chatbot & MCP Configuration Data Model (As-Built)
 
-**Branch**: `chore/try_speckit_for_database` | **Date**: 2026-11-17 | **Spec**: [spec.md](spec.md)
+**Branch**: `chore/try_speckit_for_database` | **Date**: 2026-11-17, revised 2026-11-27 | **Spec**: [spec.md](spec.md)
 
-**Input**: `specs/001-specify-core-domain/spec.md`; Nutzerauftrag: „Erstelle auf Basis des vorhandenen Backend-Codes nur die Dokumentation (plan.md und data-model.md) für den Ist-Zustand unseres Datenbankschemas. Generiere keinen neuen Code.“
+**Input**: `specs/001-specify-core-domain/spec.md`; original mandate: "Create only the documentation (plan.md and data-model.md) for the as-built state of our database schema based on the existing backend code. Do not generate any new code." Revised mandate (2026-11-27): reframe this plan as the as-built implementation plan for the feature merged in PR #29 ("Init muchabo admin"), reflecting the implemented state.
 
-**Status**: Dokumentationsphasen 0 und 1 abgeschlossen.
+**Status**: As-built documentation phases 0 and 1 completed; plan reframed on 2026-11-27 against constitution v2.3.0.
 
-**Feature directory**: `specs/001-specify-core-domain`. Das Plan-Setup liefert diesen Feature-Identifier im Feld `BRANCH`; der tatsächliche Git-Branch ist oben separat angegeben.
+**Feature directory**: `specs/001-specify-core-domain`.
 
 ## Summary
 
-Dieses Dokument beschreibt Vorgehen, technischen Kontext und Abgleich der bestehenden Datenbankstruktur. [data-model.md](data-model.md) dokumentiert den aus Flyway V001–V003 rekonstruierbaren Stand: **7 Anwendungstabellen, 24 Spalten, 7 Primärschlüssel, 2 zusätzliche Unique-Constraints und 5 Fremdschlüssel**.
+This plan documents the as-built implementation of the admin chatbot & MCP configuration data model as merged in PR #29. [data-model.md](data-model.md) records the state reconstructible from Flyway V001–V003: **7 application tables, 24 stored columns, 7 primary keys, 2 additional unique constraints and 5 foreign keys**.
 
-Die SQL-Migrationen bilden die Belegbasis für das Schema; die Java-Entitäten ergänzen das Objektmapping und dessen Validierungen. Grundlage sind die vorhandenen Quellen unter `admin-backend/` und die fachliche Spezifikation samt [source-analysis.md](source-analysis.md). Der Begriff Ist-Zustand bezeichnet hier den versionierten Quellstand, nicht das Ergebnis einer Abfrage einer laufenden Datenbank.
+The SQL migrations are the evidence base for the schema; the Java entities complement the object mapping and its validations. The basis is the existing source under `admin-backend/` and the domain specification together with [data-model.md](data-model.md). "As-built" here means the versioned source state, not the result of querying a running database.
 
-Die Phase-0-Erkenntnisse und die Dokumentationsprüfung sind in diesem Plan integriert, entsprechend dem gewünschten Ergebnisumfang von zwei Dokumenten.
+The phase-0 findings and the documentation verification are integrated in this plan, matching the requested outcome scope of two documents.
 
 ## Technical Context
 
-**Language/Version**: Java 25 laut `admin-backend/pom.xml:40–45`; PostgreSQL-SQL in den Migrationen.
+**Language/Version**: Java 25 per `admin-backend/pom.xml:40–45`; PostgreSQL SQL in the migrations.
 
-**Primary Dependencies**: Spring Boot 4.1.1 (POM-Parent), Spring Data JPA/Hibernate, Jakarta Persistence/Validation, Flyway mit PostgreSQL-Unterstützung sowie PostgreSQL-JDBC-Treiber. Lombok unterstützt die Entitätsklassen. Nicht einzeln versionierte Bibliotheken werden über Spring Boots Dependency-Management aufgelöst; ihre exakten transitiven Versionen sind für die Bestandsbeschreibung der Spalten und Constraints nicht erforderlich.
+**Primary Dependencies**: Spring Boot 4.1.1 (POM parent), Spring Data JPA/Hibernate, Jakarta Persistence/Validation, Flyway with PostgreSQL support and the PostgreSQL JDBC driver. Lombok supports the entity classes. Libraries without individually pinned versions are resolved via Spring Boot dependency management; their exact transitive versions are not required for the as-built description of columns and constraints.
 
-**Storage**: PostgreSQL. `stack/docker-compose.yml:14–21` definiert lokal `postgres:18.4-alpine`, Datenbank `postgres` und Port 5432. Migrationen verwenden unqualifizierte Tabellennamen; das tatsächlich verwendete PostgreSQL-Schema ergibt sich aus der Ausführungsumgebung und deren `search_path`.
+**Storage**: PostgreSQL. `stack/docker-compose.yml:14–21` defines locally `postgres:18.4-alpine`, database `postgres` and port 5432. Migrations use unqualified table names; the actual PostgreSQL schema results from the execution environment and its `search_path`.
 
-**Testing**: Vorhandene Spring-Boot-Testabhängigkeiten, JUnit/Testcontainers mit PostgreSQL und ArchUnit laut POM. Für dieses Dokumentationsergebnis wird ein statischer Vergleich von Quellen, Spezifikation und Datenmodell durchgeführt. Dieser Vergleich attestiert keine ausgeführten Produkt- oder Integrationstests.
+**Testing**: Existing Spring Boot test dependencies, JUnit/Testcontainers with PostgreSQL and ArchUnit per the POM. For this documentation outcome a static comparison of sources, specification and data model is performed. This comparison attests no executed product or integration test runs.
 
-**Target Platform**: Serverseitiges Spring-Boot-Backend; `admin-backend/Dockerfile` verwendet UBI10/OpenJDK-25-Runtime. Der lokale Backend-Port ist 8086 laut `application-local.yml`.
+**Target Platform**: Server-side Spring Boot backend; `admin-backend/Dockerfile` uses a UBI10/OpenJDK-25 runtime. The local backend port is 8086 per `application-local.yml`.
 
-**Project Type**: Administrativer Web-Service innerhalb des muchabo-Projekts. Das Schema der Chatbot-/MCP-Kerndomäne und der isolierten Beispielentität liegt im Java-Admin-Backend.
+**Project Type**: Administrative web service within the muchabo project. The schema of the chatbot/MCP core domain and of the isolated example entity lives in the Java admin backend.
 
-**Performance Goals**: In der untersuchten Belegbasis sind keine quantifizierten Datenbanklast- oder Laufzeitziele definiert. Für den Dokumentationsauftrag gelten die Vollständigkeits-, Prüfbarkeits- und Verständlichkeitsziele SC-001–005 der Spezifikation.
+**Performance Goals**: The examined evidence base defines no quantified database load or runtime goals. For this documentation mandate the completeness, verifiability and comprehensibility goals SC-001–005 of the specification apply.
 
-**Constraints**: Dokumentation des bestehenden Schemas ohne neue Implementierung. Flyway definiert die Schemaänderungen; Hibernate ist mit `ddl-auto: validate` konfiguriert. SQL-Constraints, JPA-Mapping, Bean Validation und Verwaltungsverhalten werden getrennt ausgewiesen.
+**Constraints**: Documentation of the existing schema without new implementation. Flyway defines the schema changes; Hibernate is configured with `ddl-auto: validate`. SQL constraints, JPA mapping, Bean Validation and management behavior are reported separately.
 
-**Scale/Scope**: 6 Kernentitäten plus `TheEntity`, 24 gespeicherte Spalten, 5 direkte Beziehungen, 3 versionierte Schema-Migrationen und 1 wiederholbare Testdatenmigration. Produktive Datenvolumina, tatsächlich angewandte Migrationen und installierte Serverversionen sind aus dem Quellstand nicht feststellbar und keine Voraussetzung für diese Bestandsdokumentation.
+**Scale/Scope**: 6 core entities plus `TheEntity`, 24 stored columns, 5 direct relationships, 3 versioned schema migrations and 1 repeatable test-data migration. Productive data volumes, actually applied migrations and installed server versions are not determinable from the source state and are not a prerequisite of this as-built documentation.
 
 ## Constitution Check
 
-Grundlage: `.specify/memory/constitution.md`, Version 1.0.0 vom 2026-11-17. Bewertet wird die Konformität des Dokumentationsauftrags; eine vollständige Laufzeitprüfung des Produkts ist damit nicht verbunden.
+Basis: `.specify/memory/constitution.md`, version 2.3.0 of 2026-11-27. What is assessed is the conformity of this as-built feature and its documentation; a full runtime verification of the product is not implied. The assessment applies the **Scoped applicability** rule: a principle applies when the feature touches the surface it governs; untouched surfaces receive no preparatory scaffolding.
 
-| Prinzip / Gate | Prüfung vor Phase 0 | Erneute Bewertung nach Phase 1 |
-| --- | --- | --- |
-| I — Admin/Public-Trennung und Gateway | Die Verfassung nennt `admin-backend/`, `admin-frontend/` und die öffentliche Webkomponente. Der Umfang betrifft das vorhandene Admin-Schema. | Keine Architekturentscheidung erforderlich; die Dokumentation ordnet die Quellen dem Admin-Backend zu. Gateway-Verhalten ist durch Schemaquellen nicht verifizierbar. |
-| II — Java, Spring Boot, PostgreSQL und Flyway | Technologiestack und versionierte Migrationen sind belegt. Das Java-Basispaket weicht von der Verfassung ab. | Schema und Entitätsmapping sind getrennt dokumentiert; die bestehende Paketabweichung ist in Complexity Tracking begründet. |
-| III — Frontend-Standards | Keine Frontend-Umsetzung im Dokumentationsumfang. | Für dieses Ergebnis kein Frontend-Implementierungsgate einschlägig. |
-| IV — Sicherheit und Authentifizierung | Die Beispielverwaltung besitzt belegte Lese-/Schreibrollen; eine Rechtezuordnung für die Kernentitäten ist aus dem Schema nicht ableitbar. | Rechte werden nicht als Datenbank-Constraint ausgegeben. Keine zusätzliche Schnittstellen- oder Berechtigungsentscheidung erforderlich. |
-| V — Qualitätsgates und Tests | Die POM konfiguriert die Backend-Qualitätswerkzeuge; diese prüfen Produktcode. | Dokumentationsqualität durch Quellenabgleich und Konsistenzprüfung beurteilt. Produkt-Build- und Security-Gates werden dadurch nicht als bestanden attestiert. |
-| Governance | Die bestehende Paketabweichung wird rekonstruiert. Die Verfassung verlangt einen Abgleich vor einer Architekturabweichung bei Implementierung. | Dokumentation ist zulässig; keine neue, unbegründete Architekturabweichung. Eine spätere strukturelle Umsetzung benötigt den vorgesehenen Verfassungsabgleich. |
+| Principle | Applicability and assessment (after completion of phases 0 and 1) |
+| --- | --- |
+| I — Simplicity First | Applies: the implementation uses plain JPA entities, two Flyway migrations and no wrappers, abstractions or options beyond the template baseline; this plan produces only alignment documents with no additional artifacts. Every artifact traces to the mandate (traceability). |
+| II — Config over Code | Partially applies: the feature stores the data fields from which bot specifications can later be fed. It introduces no parallel format and changes no runtime code. |
+| III — Stateless, Scalable Runtime | Not touched: no runtime logic in scope. |
+| IV — Security and Data Protection by Design | Partially applies: the documented schema stores no credentials; permissions are not issued as database constraints. The example management enforces evidenced read/write roles; no permission mapping exists yet for the six core entities. |
+| V — Human Oversight | Not touched: no tool execution or approval logic in scope. |
+| VI — Observability | Not touched: no runtime artifacts of this feature's delta; no traces or logs in scope. |
+| VII — Clean, Maintainable Code | Applies to the implemented code: typed Java entities following the template structure; the Maven build configures Spotless, PMD and SpotBugs with the findsecbugs plugin as quality gates. |
+| VIII — Documentation | Core of this outcome: spec.md, data-model.md and this plan are the required artifacts; evidence paths, boundaries and validation levels are reported. |
+| IX — Testing and Quality Gates | The implemented feature ships tests for the example entity management. The schema-level rules of the six core entities (uniqueness, mandatory references, length limits, delete cascades, active-flag default) are verified by `CoreDomainSchemaIntegrationTest`, added with this backport, running against the Flyway-managed schema. Documentation quality is assessed via the static source comparison in phase 1; product gates such as `mvn clean verify` are not attested by it. |
+| X — Production Readiness | Partially applies: the evidenced dependencies (Spring Boot, PostgreSQL, Flyway) are established stock; no dependencies are added and no manifests or lockfiles are changed by this plan. |
+| XI — User Experience | Not touched: no user interface in scope. |
 
-**Ergebnis vor und nach Phase 1**: Dokumentationsgate erfüllt. Alle für den Umfang erforderlichen Angaben sind aus lokalen Quellen geklärt; fehlende Live-Instanzdaten sind als Beleggrenze bezeichnet, nicht als offene Designentscheidung.
+**Result before and after phase 1**: Documentation gate fulfilled. All information required for the scope is clarified from local sources; missing live-instance data is named as an evidence boundary, not as an open design decision.
+
+## Explicitly Not Built (Not Built)
+
+Per the Development Workflow of the constitution, this plan explicitly lists what is not built:
+
+- No product code: no entity, schema or migration changes (V001–V003 and `R__Testdata.sql` remain unchanged). The verification test `CoreDomainSchemaIntegrationTest` added with this backport is test code, not a product change.
+- No management repositories, services or controllers for the six core entities.
+- No package rename: the deviation of the Java base package is only documented; its fix is a separate implementation change with its own constitution alignment.
+- No permission, approval, delete or runtime decisions: the as-built state is described, not assessed, extended or "improved".
+- No task list (tasks.md) and no implementation run: the implemented state already exists in `main` (PR #29); this backport documents it retrospectively. Requirement-to-source traceability in spec.md replaces task coverage.
+
+## Simplicity Review
+
+Checked before task generation would apply: can the same documentation scope be achieved with fewer artifacts or less effort?
+
+- The user mandate explicitly requests exactly two outcome files (plan.md with the integrated as-built analysis and data-model.md); no additional artifacts were created.
+- The original five-artifact set was consolidated on 2026-11-27: source-analysis.md was merged into data-model.md (its schema sections were redundant; its unique application-behavior section became data-model.md §9) and deleted, leaving spec.md, plan.md and data-model.md as the single sources for domain rules, governance and technical evidence respectively.
+- No scripts, template copies or verification tools were created for this mandate; the existing Spec Kit infrastructure is used unchanged.
 
 ## Project Structure
 
@@ -57,11 +80,10 @@ Grundlage: `.specify/memory/constitution.md`, Version 1.0.0 vom 2026-11-17. Bewe
 
 ```text
 specs/001-specify-core-domain/
-├── spec.md                      # Vorhandene fachliche Spezifikation
-├── source-analysis.md           # Vorhandene Quellenbelege
-├── checklists/requirements.md   # Vorhandene Spezifikationsprüfung
-├── plan.md                      # Dokumentationsplan mit Phase-0-Erkenntnissen
-└── data-model.md                # Schema-Ist-Zustand
+├── spec.md                      # As-built feature specification
+├── checklists/requirements.md   # Specification review
+├── plan.md                      # As-built plan with phase-0 findings
+└── data-model.md                # Schema as-built state and source evidence
 ```
 
 ### Source Code (repository root)
@@ -76,7 +98,7 @@ admin-backend/
     │   │   ├── chatbot/         # Chatbot, ChatbotConfig
     │   │   ├── model/           # Model
     │   │   ├── mcp/             # McpServer, McpTool, ChatbotTool
-    │   │   └── theentity/       # Beispielentität und Beispielverwaltung
+    │   │   └── theentity/       # Example entity and example management
     │   └── resources/
     │       ├── application.yml
     │       ├── application-local.yml
@@ -84,68 +106,70 @@ admin-backend/
     │           ├── schema/     # V001, V002, V003
     │           └── testdata/   # R__Testdata.sql
     └── test/java/de/muenchen/oss/refarch/backend/
-stack/docker-compose.yml        # Lokales PostgreSQL-Image
+stack/docker-compose.yml        # Local PostgreSQL image
 ```
 
-**Structure Decision**: Die dokumentierten Pfade entsprechen dem vorhandenen Checkout. Das aktive Feature wird über `.specify/feature.json` aufgelöst, unabhängig vom Git-Branchnamen. `setup-plan.sh --json` hat die aktive Plan-Vorlage bereitgestellt. Die technische Bestandsanalyse ist in die beiden angeforderten Dokumente integriert.
+**Structure Decision**: The documented paths correspond to the existing checkout. At the time of this revision `.specify/feature.json` no longer exists; feature resolution uses `SPECIFY_FEATURE_DIRECTORY=specs/001-specify-core-domain`. The technical as-built analysis is integrated into the two requested documents.
 
 ## Complexity Tracking
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Bestehendes Java-Basispaket `de.muenchen.oss.refarch.backend` statt des in der Verfassung genannten `de.muenchen.oss.muchabo`. | Der Ist-Zustand muss die tatsächlich vorhandenen Entitäten und ihre Belegpfade korrekt benennen. Dies begründet die Beschreibung der Abweichung, keine Freigabe einer neuen Architektur. | Eine Dokumentation unter dem nicht vorhandenen Paket wäre unbelegt; eine Paketumbenennung wäre eine Implementierungsänderung. |
+| Existing Java base package `de.muenchen.oss.refarch.backend` instead of the constitution's `de.muenchen.oss.muchabo`. | The as-built state must name the actually existing entities and their evidence paths correctly. This justifies describing the deviation, not approving a new architecture. | Documentation under the non-existent package would be unevidenced; a package rename would be an implementation change (planned separately). |
 
-## Phase 0 — Research und geklärte Bestandsfragen
+## Phase 0 — Research and Clarified As-Built Questions
 
-Die folgenden Erkenntnisse erfüllen die Quellenklärung für diesen Dokumentationsauftrag. Es sind keine neuen Technologie- oder Integrationsentscheidungen erforderlich.
+The following findings fulfil the source clarification for this documentation mandate. No new technology or integration decisions are required.
 
-### R-001 — Schemaquelle
+### R-001 — Schema source
 
-- **Decision**: V001–V003 unter `admin-backend/src/main/resources/db/migration/schema/` bestimmen den rekonstruierbaren Schemastand.
-- **Rationale**: SQL definiert Spaltentypen, Nullbarkeit, Defaults und Constraints ausdrücklich; `ddl-auto: validate` beschreibt die konfigurierte Rolle von Hibernate als Schema-Prüfer.
-- **Alternatives considered**: Ausschließlich Entitätsannotationen würden SQL-Defaults und Datenbank-Löschkaskaden übersehen. Live-Instanzzustand wäre ohne Abfrage unbelegt.
+- **Decision**: V001–V003 under `admin-backend/src/main/resources/db/migration/schema/` determine the reconstructible schema state.
+- **Rationale**: SQL explicitly defines column types, nullability, defaults and constraints; `ddl-auto: validate` describes Hibernate's configured role as schema validator.
+- **Alternatives considered**: Entity annotations alone would overlook SQL defaults and database delete cascades. Live instance state would be unevidenced without a query.
 
-### R-002 — Validierungsebenen und Defaults
+### R-002 — Validation levels and defaults
 
-- **Decision**: SQL-Regeln, JPA-Verhalten und Eingabevalidierung separat darstellen.
-- **Rationale**: Alle Java-Entitäten erben UUID-Generierung, aber nur die sechs Kerntabellen besitzen einen SQL-UUID-Default. Beispieltext-Mindestlänge 2 ist Bean Validation, kein SQL-Constraint. `created_at` hat einen SQL-Insert-Default und objektseitigen Änderungsschutz, aber keinen Unveränderlichkeits-Trigger. Default-Werte ersetzen kein explizites `NULL`.
-- **Alternatives considered**: Eine gemeinsame Regelauflistung ohne Ebenenkennzeichnung würde weitergehende Datenbankgarantien behaupten.
+- **Decision**: Report SQL rules, JPA behavior and input validation separately.
+- **Rationale**: All Java entities inherit UUID generation, but only the six core tables have an SQL UUID default. The example text minimum length 2 is Bean Validation, not an SQL constraint. `created_at` has an SQL insert default and object-side change protection, but no immutability trigger. Defaults do not replace an explicit `NULL`.
+- **Alternatives considered**: A combined rule listing without level labels would claim further database guarantees.
 
-### R-003 — Beziehungen und Zustandsänderungen
+### R-003 — Relationships and state changes
 
-- **Decision**: Zwei FK-Beziehungen mit standardmäßigem `NO ACTION` und drei FK-Beziehungen mit `ON DELETE CASCADE` dokumentieren; Collection-Orphan-Removal zusätzlich als Objektverhalten benennen.
-- **Rationale**: Chatbot- und Modelllöschung sind bei Konfigurationsverweisen verhindert. Konfigurations-, Werkzeug- und Serverlöschungen entfernen abhängige Zuordnungen. `ChatbotConfig.chatbotTools` enthält `cascade = ALL` und `orphanRemoval = true`. Der Aktivstatus gehört zur Zuordnung, nicht zum Werkzeug insgesamt.
-- **Alternatives considered**: Eine pauschale Löschkaskade oder eine globale Werkzeugaktivierung wäre fachlich und technisch falsch.
+- **Decision**: Document two FK relationships with default `NO ACTION` and three FK relationships with `ON DELETE CASCADE`; additionally name the collection orphan removal as object behavior.
+- **Rationale**: Chatbot and model deletion is prevented for configuration references. Configuration, tool and server deletions remove dependent assignments. `ChatbotConfig.chatbotTools` has `cascade = ALL` and `orphanRemoval = true`. The active flag belongs to the assignment, not to the tool as a whole.
+- **Alternatives considered**: A blanket delete cascade or a global tool activation would be factually and technically wrong.
 
-### R-004 — Testdaten und Indexbestand
+### R-004 — Test data and index stock
 
-- **Decision**: `R__Testdata.sql` als konfigurationsabhängigen Datenbestandseingriff behandeln; implizite Constraint-Indizes von expliziten Indizes unterscheiden.
-- **Rationale**: Standardmäßig wird nur der Schemaordner geladen; lokal und in der Flyway-Maven-Konfiguration zusätzlich Testdaten. Die wiederholbare Migration leert ausschließlich die Beispielentität. SQL enthält kein `CREATE INDEX`; PostgreSQL erzeugt Indizes für sieben PK und zwei Unique-Constraints, aber nicht automatisch für alle FK-Spalten.
-- **Alternatives considered**: Die fünf Beispieltexte als Kernstammdaten, das Leeren als Geschäftsregel oder alle Fremdschlüssel als separat indiziert auszugeben wäre unbelegt.
+- **Decision**: Treat `R__Testdata.sql` as a configuration-dependent test-data intervention; distinguish implicit constraint indexes from explicit indexes.
+- **Decision rationale**: By default only the schema folder is loaded; locally and in the Flyway Maven configuration test data is added as well. The repeatable migration empties only the example entity. The SQL contains no `CREATE INDEX`; PostgreSQL creates indexes for seven PKs and two unique constraints but not automatically for all FK columns.
+- **Alternatives considered**: Presenting the five example texts as core master data, the emptying as a business rule or all foreign keys as separately indexed would be unevidenced.
 
-## Phase 1 — Datenmodell und Dokumentationsprüfung
+## Phase 1 — Data Model and Documentation Verification
 
-### Ergebnis
+### Outcome
 
-[data-model.md](data-model.md) enthält sämtliche Tabellen und Spalten mit SQL-Typ, Nullbarkeit, Default und Java-Zuordnung, ein ER-Diagramm, alle Schlüssel und Beziehungen sowie Löschregeln, Zustandsänderungen und Validierungsgrenzen. Die Migrationen und ihr Konfigurationsbezug werden nachvollziehbar beschrieben.
+[data-model.md](data-model.md) contains all tables and columns with SQL type, nullability, default and Java mapping, an ER diagram, all keys and relationships as well as delete rules, state changes and validation boundaries. The migrations and their configuration context are comprehensibly described.
 
-Die bereits belegte Beispielverwaltung ist Anwendungskontext; ihre Rollen und Pagination sind keine SQL-Constraints. Für die sechs Kernentitäten sind keine eigenen Verwaltungs-Repositories, Services oder Controller belegt. Der Anforderungsbezug verweist deshalb bei FR-015–016 auf die vorhandene Quellenanalyse.
+The already evidenced example management is application context; its roles and pagination are not SQL constraints. For the six core entities no dedicated management repositories, services or controllers are evidenced. The requirement mapping therefore refers to the existing source analysis for FR-015–016.
 
-### Ausgeführter statischer Abgleich
+Closing the quality gap identified during the constitution re-validation (C1), the schema-level rules of the core entities are now verified by `CoreDomainSchemaIntegrationTest` (`src/test/java/de/muenchen/oss/refarch/backend/`), which runs against the Flyway-managed schema (`ddl-auto=validate`, migrations V001–V003) and maps to the acceptance scenarios of FR-001–012.
 
-| Prüfung | Erwarteter Befund | Ergebnis |
+### Executed Static Comparison
+
+| Check | Expected finding | Result |
 | --- | --- | --- |
-| Entitäten und Tabellen | 7 Entitäten ↔ 7 Tabellen; Basisklasse ohne Tabelle | Vollständig zugeordnet. |
-| Spalten | 2 + 2 + 7 + 3 + 4 + 4 + 2 = 24 | Jede Spalte mit Typ, Nullbarkeit, Default und Java-Attribut beschrieben. |
-| Schlüssel und Löschaktionen | 7 PK, 2 zusätzliche Unique-Constraints, 5 FK; davon 2 ohne und 3 mit Löschkaskade | Vollständig dokumentiert. |
-| Mapping und Validierung | Pflichtreferenzen, inverse Sammlung, Orphan Removal, Zeitstempel, Aktivstatus und Beispieltextprüfung | Von SQL-Absicherung getrennt ausgewiesen. |
-| Spezifikationsabgleich | FR-001–014 und FR-017 als Schema-/Mappingbezug; FR-015–016 als Beispielverwaltungsverhalten | Anforderungszuordnung enthalten. |
-| Migrationen und Defaults | V001–V003 plus R-Testdaten; fehlender SQL-UUID-Default für Beispielkennung | Bestandsunterschiede ausdrücklich benannt. |
+| Entities and tables | 7 entities ↔ 7 tables; base class without table | Fully mapped. |
+| Columns | 2 + 2 + 7 + 3 + 4 + 4 + 2 = 24 | Every column described with type, nullability, default and Java attribute. |
+| Keys and delete actions | 7 PKs, 2 additional unique constraints, 5 FKs; 2 without and 3 with delete cascade | Fully documented. |
+| Mapping and validation | Mandatory references, inverse collection, orphan removal, timestamps, active flag and example text check | Reported separately from SQL enforcement. |
+| Specification alignment | FR-001–014 and FR-017 as schema/mapping references; FR-015–016 as example management behavior | Requirement mapping included. |
+| Migrations and defaults | V001–V003 plus R test data; missing SQL UUID default for the example identifier | As-built differences explicitly named. |
 
-Dieser Abgleich prüft Dokumentationsvollständigkeit und Belegtreue. Er enthält keine Aussage über bestandene Produkt-Akzeptanzszenarien, einen ausgeführten Build oder den tatsächlich angewandten Migrationsstand einer Umgebung.
+This comparison verifies documentation completeness and evidence fidelity. It makes no statement about passed product acceptance scenarios, an executed build or the actually applied migration state of an environment.
 
-Die Whitespace-Prüfung beider Ergebnisdateien war erfolgreich. `check-prerequisites.sh --json --require-spec` findet das aktive Feature, seine Spezifikation, den ausgefüllten Plan und `data-model.md` erfolgreich.
+The whitespace check of both outcome files was successful. `check-prerequisites.sh --json --require-spec` finds the active feature, its specification, the completed plan and `data-model.md` successfully.
 
-### Extension-Hooks
+### Extension Hooks
 
-Bei der Vorprüfung und der abschließenden Post-Hook-Prüfung existiert `.specify/extensions.yml` nicht. Damit sind keine `before_plan`- oder `after_plan`-Hooks registriert.
+At the preliminary check and the final post-hook check, `.specify/extensions.yml` does not exist. Thus no `before_plan`- or `after_plan`-hooks are registered.

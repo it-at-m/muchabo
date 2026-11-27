@@ -1,193 +1,219 @@
-# Feature Specification: Fachliche Bestandsbeschreibung der muchabo-Kerndomäne
+# Feature Specification: Admin Chatbot & MCP Configuration Data Model
 
 **Feature Branch**: `chore/try_speckit_for_database`
 
 **Created**: 2026-11-17
 
-**Status**: Rückwirkende Bestandsbeschreibung; Qualitätsprüfung abgeschlossen, bereit für Planung
+**Revised**: 2026-11-27 (reframed as the as-built feature specification for PR #29; translated to English)
 
-**Input**: User description: "Analysiere unser bestehendes Datenmodell in admin-backend/src/main/java/de/muenchen/oss/muchabo/ (Entities, Repositories) sowie die Flyway-Migrationen in admin-backend/src/main/resources/db/migration/. Leite daraus rückwirkend die fachliche Spezifikation (spec.md) für unsere Kerndomäne ab, inklusive aller Entitäten, Beziehungen und Validierungsregeln."
+**Status**: Retrospective, as-built specification. The feature described here is implemented and merged into `main` via PR #29 ("Init muchabo admin"). Requirements describe behavior that holds in the current source state; they are not an announcement of future work.
+
+**Input**: Original user description (2026-11-17): "Analyse our existing data model in `admin-backend/src/main/java/de/muenchen/oss/muchabo/` (entities, repositories) as well as the Flyway migrations in `admin-backend/src/main/resources/db/migration/`. Derive from it retrospectively the domain specification (spec.md) for our core domain, including all entities, relationships and validation rules." Revised mandate (2026-11-27): reframe this document as the Spec Kit feature specification for PR #29, reflecting the implemented state. The requested Java path did not exist; the actual paths and every source reference are recorded in [data-model.md](data-model.md).
 
 ## User Scenarios & Testing *(mandatory)*
 
-Die Szenarien beschreiben fachlich zulässige Bestandsdaten und deren Änderungen. Sie belegen keine bereits bedienbare Chatbotverwaltung. Für die Kernentitäten sind Datenregeln vorhanden; konkrete Verwaltungsfunktionen sind nur für die isolierte Beispielentität belegt. Die technische Herleitung steht in [source-analysis.md](source-analysis.md).
+The scenarios describe domain-valid data and changes as they hold in the implemented schema. They do not attest an operable chatbot administration: management functions are only evidenced for the isolated example entity. The technical derivation is recorded in [data-model.md](data-model.md).
 
-### User Story 1 - Chatbots und Konfigurationen fachlich nachvollziehen (Priority: P1)
+### User Story 1 - Distinguish chatbots, models and configurations (Priority: P1)
 
-Als fachlich verantwortliche Person möchte ich Chatbots, ihre Konfigurationen und die zugehörigen Modelle eindeutig auseinanderhalten und die hinterlegten Einstellungen verstehen.
+As a data steward, I want to distinguish chatbots, their configurations and the associated models unambiguously and understand the stored settings.
 
-**Why this priority**: Chatbot, Modell und Konfiguration bilden die Grundlage für die fachliche Beschreibung des Chatbotverhaltens.
+**Why this priority**: Chatbot, model and configuration form the foundation of the domain description of chatbot behavior.
 
-**Independent Test**: Ein Chatbot, ein Modell und zwei Konfigurationen genügen zum Prüfen von Identität, Pflichtangaben, Mehrfachkonfigurationen und Versionsbezeichnungen.
+**Independent Test**: One chatbot, one model and two configurations suffice to verify identity, mandatory fields, multiple configurations and version labels.
 
 **Acceptance Scenarios**:
 
-1. **Given** ein Chatbot und ein Modell mit vorhandenen Namen bis 100 Zeichen, **When** eine Konfiguration mit vorhandener Verhaltensanweisung, numerischer Temperatur und Versionsbezeichnung bis 20 Zeichen erfasst wird, **Then** besitzt sie eine eigene Kennung, genau diesen Chatbot, genau dieses Modell und einen automatisch gesetzten Erstellungszeitpunkt (FR-001–004).
-2. **Given** eine bestehende Konfiguration, **When** für denselben Chatbot eine weitere Konfiguration mit demselben Modell und derselben Versionsbezeichnung erfasst wird, **Then** ist ein eigener Datensatz zulässig; die Versionsbezeichnung ist nicht eindeutig (FR-005).
-3. **Given** eine Konfiguration, **When** eine Pflichtangabe fehlt oder ein Bezug auf einen nicht vorhandenen Chatbot beziehungsweise ein nicht vorhandenes Modell gesetzt wird, **Then** ist dieser Datenzustand unzulässig (FR-003, FR-012).
-4. **Given** eine vorhandene Konfiguration, **When** Prompt oder Temperatur regulär geändert werden, **Then** bleibt ihr Erstellungszeitpunkt erhalten; eine allgemeine Unveränderlichkeit der Konfiguration ist nicht vorgeschrieben (FR-004–005).
-5. **Given** ein Modell namens „Modell A“, **When** ein weiteres Modell mit exakt demselben Namen erfasst wird, **Then** ist der doppelte Modellname unzulässig; gleichnamige Chatbots sind dagegen zulässig (FR-002).
+1. **Given** a chatbot and a model with existing names of up to 100 characters, **When** a configuration with an existing prompt, a numeric temperature and a version label of up to 20 characters is stored, **Then** it has its own identifier, exactly this chatbot, exactly this model and an automatically set creation timestamp (FR-001–004).
+2. **Given** an existing configuration, **When** another configuration with the same model and the same version label is stored for the same chatbot, **Then** a separate record is permitted; the version label is not unique (FR-005).
+3. **Given** a configuration, **When** a mandatory field is missing or a reference to a non-existent chatbot or a non-existent model is set, **Then** that data state is not permitted (FR-003, FR-012).
+4. **Given** an existing configuration, **When** the prompt or temperature is changed regularly, **Then** its creation timestamp is preserved; a general immutability of the configuration is not mandated (FR-004–005).
+5. **Given** a model named "Model A", **When** another model with exactly the same name is stored, **Then** the duplicate model name is not permitted; identically named chatbots are permitted (FR-002).
 
 ---
 
-### User Story 2 - Werkzeuge je Konfiguration zuordnen und aktivieren (Priority: P2)
+### User Story 2 - Assign tools per configuration (Priority: P2)
 
-Als fachlich verantwortliche Person möchte ich festhalten, welche Werkzeuge eines MCP-Servers einer Konfiguration zugeordnet und dort aktiv oder inaktiv sind. Ein MCP-Server ist ein Anbieter solcher Werkzeuge.
+As a data steward, I want to record which tools of an MCP server are assigned to a configuration and whether they are active or inactive there. An MCP server is a provider of such tools.
 
-**Why this priority**: Die Zuordnung beschreibt Fähigkeiten je Konfiguration, ohne daraus eine globale Aktivierung eines Werkzeugs abzuleiten.
+**Why this priority**: The assignment describes capabilities per configuration without deriving a global activation of a tool from it.
 
-**Independent Test**: Ein Server, ein Werkzeug und zwei vorbereitete Konfigurationen erlauben die Prüfung von Pflichtbezug, Mehrfachverwendung, Eindeutigkeit und unabhängigem Aktivstatus.
+**Independent Test**: One server, one tool and two prepared configurations allow verifying mandatory reference, multiple use, uniqueness and the independent active flag.
 
 **Acceptance Scenarios**:
 
-1. **Given** ein vorhandener Server, ein ihm zugeordnetes Werkzeug und eine vorhandene Konfiguration, **When** Werkzeug und Konfiguration erstmals zugeordnet werden, **Then** erhält die Zuordnung eine eigene Kennung und ist ohne abweichende Angabe aktiv (FR-001, FR-006–008).
-2. **Given** eine bestehende Zuordnung, **When** dasselbe Werkzeug derselben Konfiguration erneut zugeordnet wird, **Then** ist die doppelte Zuordnung unzulässig, auch bei anderem Aktivstatus (FR-009).
-3. **Given** ein Werkzeug mit aktiven Zuordnungen in zwei Konfigurationen, **When** eine Zuordnung deaktiviert wird, **Then** bleibt die andere aktiv; weder das Werkzeug noch die deaktivierte Zuordnung wird gelöscht (FR-008–009).
-4. **Given** ein Server mit gültigen Pflichtangaben, **When** zwei Werkzeuge mit gleichem Namen und ohne Beschreibung erfasst werden, **Then** sind beide zulässig und jeweils genau diesem Server zugeordnet (FR-006–007).
-5. **Given** ein Server oder Werkzeug, **When** eine Pflichtangabe fehlt, ein Name 101 Zeichen lang ist, eine Serveradresse 256 Zeichen lang ist oder ein Werkzeug auf einen nicht vorhandenen Server verweist, **Then** ist der betroffene Datenzustand unzulässig; ein vorhandener Adresstext bis 255 Zeichen unterliegt keiner belegten Formatprüfung (FR-006–007, FR-012–013).
+1. **Given** an existing server, a tool assigned to it and an existing configuration, **When** the tool and the configuration are assigned to each other for the first time, **Then** the assignment receives its own identifier and is active unless stated otherwise (FR-001, FR-006–008).
+2. **Given** an existing assignment, **When** the same tool is assigned to the same configuration again, **Then** the duplicate assignment is not permitted, regardless of the active flag (FR-009).
+3. **Given** a tool with active assignments in two configurations, **When** one assignment is deactivated, **Then** the other remains active; neither the tool nor the deactivated assignment is deleted (FR-008–009).
+4. **Given** a server with valid mandatory fields, **When** two tools with the same name and no description are stored, **Then** both are permitted and each is assigned to exactly this server (FR-006–007).
+5. **Given** a server or a tool, **When** a mandatory field is missing, a name is 101 characters long, a server address is 256 characters long or a tool references a non-existent server, **Then** the affected data state is not permitted; an existing address text of up to 255 characters is not subject to any evidenced format check (FR-006–007, FR-012–013).
 
 ---
 
-### User Story 3 - Löschfolgen für abhängige Daten verstehen (Priority: P2)
+### User Story 3 - Understand delete consequences for dependent data (Priority: P2)
 
-Als fachlich verantwortliche Person möchte ich wissen, welche Datensätze bei einer Löschung erhalten bleiben oder mit entfernt werden und welche Beziehungen eine Löschung verhindern.
+As a data steward, I want to know which records are preserved or removed when a deletion occurs and which relationships prevent a deletion.
 
-**Why this priority**: Die Regeln schützen die Zuordnung von Konfigurationen und verhindern verwaiste Werkzeugzuordnungen.
+**Why this priority**: These rules protect the assignment of configurations and prevent orphaned tool assignments.
 
-**Independent Test**: Vorbereitete Datensätze mit den fünf beschriebenen Beziehungen erlauben jede Löschprüfung unabhängig von einem Chatbotdialog.
+**Independent Test**: Prepared records with the five described relationships allow every deletion check independently of a chatbot conversation.
 
 **Acceptance Scenarios**:
 
-1. **Given** ein Chatbot oder Modell mit mindestens einer Konfiguration, **When** der Chatbot beziehungsweise das Modell gelöscht werden soll, **Then** verhindert die bestehende Konfiguration die Löschung (FR-010).
-2. **Given** eine Konfiguration mit Werkzeugzuordnungen, **When** die Konfiguration gelöscht wird, **Then** entfallen ihre Zuordnungen; Chatbot, Modell, Werkzeuge und Server bleiben bestehen (FR-011).
-3. **Given** ein Werkzeug mit Zuordnungen in mehreren Konfigurationen, **When** das Werkzeug gelöscht wird, **Then** entfallen alle seine Zuordnungen; die Konfigurationen und der Server bleiben bestehen (FR-011).
-4. **Given** ein Server mit Werkzeugen und deren Zuordnungen, **When** der Server gelöscht wird, **Then** entfallen seine Werkzeuge und deren Zuordnungen; betroffene Konfigurationen und Chatbots bleiben bestehen (FR-011).
-5. **Given** eine Werkzeugzuordnung innerhalb einer Konfiguration, **When** diese Zuordnung aus der Konfiguration entfernt wird, **Then** entfällt nur die Zuordnung; Werkzeug und Konfiguration bleiben bestehen (FR-011).
-6. **Given** ein Chatbot oder Modell ohne Konfiguration, **When** dieser Datensatz gelöscht wird, **Then** verhindert keine der beschriebenen Beziehungen seine Löschung (FR-010).
+1. **Given** a chatbot or model with at least one configuration, **When** the chatbot or the model is to be deleted, **Then** the existing configuration prevents the deletion (FR-010).
+2. **Given** a configuration with tool assignments, **When** the configuration is deleted, **Then** its assignments are removed; chatbot, model, tools and servers remain (FR-011).
+3. **Given** a tool with assignments in several configurations, **When** the tool is deleted, **Then** all of its assignments are removed; the configurations and the server remain (FR-011).
+4. **Given** a server with tools and their assignments, **When** the server is deleted, **Then** its tools and their assignments are removed; affected configurations and chatbots remain (FR-011).
+5. **Given** a tool assignment within a configuration, **When** this assignment is removed from the configuration, **Then** only the assignment is removed; tool and configuration remain (FR-011).
+6. **Given** a chatbot or model without a configuration, **When** this record is deleted, **Then** none of the described relationships prevents its deletion (FR-010).
 
 ---
 
-### User Story 4 - Vorhandene Beispielverwaltung einordnen (Priority: P3)
+### User Story 4 - Classify the existing example management (Priority: P3)
 
-Als fachlich verantwortliche Person möchte ich die isolierte Beispielentität und ihre belegten Regeln kennen, ohne ihr eine unbelegte Bedeutung in der Chatbot-Kerndomäne zuzuschreiben.
+As a data steward, I want to know the isolated example entity and its evidenced rules without attributing an unevidenced significance to it in the chatbot core domain.
 
-**Why this priority**: Die Bestandsbeschreibung soll alle vorhandenen Entitäten erfassen und ihre fachliche Abgrenzung nachvollziehbar machen.
+**Why this priority**: The as-built description must cover all existing entities and make their domain boundaries comprehensible.
 
-**Independent Test**: Ein Beispieldatensatz und Personen mit Lese- beziehungsweise Schreibberechtigung genügen für die unabhängige Prüfung.
+**Independent Test**: One example record and persons with read or write permission suffice for the independent check.
 
 **Acceptance Scenarios**:
 
-1. **Given** eine Person mit Schreibberechtigung, **When** ein Beispieltext mit 2 oder 8 Zeichen erfasst wird, **Then** ist er zulässig und erhält eine Kennung; fehlender Text und Texte mit 1 oder 9 Zeichen sind bei der Beispielverwaltung unzulässig (FR-001, FR-014–015).
-2. **Given** eine Person mit Leseberechtigung, **When** sie einzelne oder seitenweise aufgelistete Beispieldatensätze liest, **Then** ist dies erlaubt; Erstellen, Ändern und Löschen erfordern Schreibberechtigung (FR-015).
-3. **Given** eine Person mit Schreibberechtigung und ein Beispieldatensatz, **When** sie seinen Text gültig ändert und ihn anschließend löscht, **Then** bleibt bei der Änderung die Kennung erhalten und nach der Löschung entfällt der Datensatz (FR-015).
-4. **Given** eine nicht vorhandene Beispielkennung, **When** der Datensatz gelesen oder geändert wird, **Then** wird „nicht gefunden“ gemeldet (FR-016).
-5. **Given** elf Beispieldatensätze, **When** ohne weitere Angaben seitenweise gelesen wird, **Then** enthält die erste Seite zehn Datensätze; negative Seitennummern und nicht positive Seitengrößen sind unzulässig (FR-016).
+1. **Given** a person with write permission, **When** an example text of 2 or 8 characters is stored, **Then** it is permitted and receives an identifier; a missing text and texts of 1 or 9 characters are not permitted in the example management (FR-001, FR-014–015).
+2. **Given** a person with read permission, **When** they read single or paginated example records, **Then** this is allowed; creating, changing and deleting require write permission (FR-015).
+3. **Given** a person with write permission and an example record, **When** they change its text validly and then delete it, **Then** the change preserves the identifier and after the deletion the record is gone (FR-015).
+4. **Given** a non-existent example identifier, **When** the record is read or changed, **Then** "not found" is reported (FR-016).
+5. **Given** eleven example records, **When** they are read paginated without further parameters, **Then** the first page contains ten records; negative page numbers and non-positive page sizes are not permitted (FR-016).
 
 ### Edge Cases
 
-- **Fehlend und leer**: Ein Pflichttext darf nicht fehlen. Für die sechs Kernentitäten sind leere Texte und reine Leerzeichen jedoch nicht ausgeschlossen. Der Beispieltext darf aus Leerzeichen bestehen, muss bei der Beispielverwaltung aber die Länge 2–8 erfüllen.
-- **Grenzlängen**: Namen bis 100 Zeichen, Serveradressen bis 255 Zeichen und Versionsbezeichnungen bis 20 Zeichen sind innerhalb ihrer Grenzen; jeweils ein Zeichen mehr überschreitet sie. Für Verhaltensanweisung und Werkzeugbeschreibung ist keine fachliche Maximallänge festgelegt.
-- **Leerer Modellname**: Ein leerer Modellname ist möglich, ein zweiter identischer leerer Modellname verletzt die Eindeutigkeit. Eine Gleichsetzung unterschiedlich geschriebener Namen ist nicht fachlich festgelegt.
-- **Temperatur**: Es gibt keinen festgelegten Standardwert und keinen belegten Mindest-/Höchstwert; gewöhnliche Werte wie −1 oder 3 werden nicht durch eine Bereichsregel ausgeschlossen. Nicht endliche Sonderwerte sind nicht als fachliche Garantie spezifiziert.
-- **Mehrfachkonfigurationen**: Auch derselbe Chatbot kann mehrere Konfigurationen mit gleichem Modell und gleicher Versionsbezeichnung besitzen. Die Bezeichnung bestimmt weder eine Reihenfolge noch eine aktuelle oder freigegebene Konfiguration.
-- **Optionale Zuordnungen**: Ein Chatbot darf ohne Konfiguration existieren; eine Konfiguration ohne Werkzeuge, ein Server ohne Werkzeuge und ein Werkzeug ohne Konfigurationszuordnung sind ebenfalls zulässig.
-- **Inaktive Doppelzuordnung**: Eine inaktive Zuordnung bleibt bestehen und verhindert eine zweite Zuordnung desselben Konfiguration/Werkzeug-Paares.
-- **Serverlöschung**: Die Löschung kann Zuordnungen in mehreren Chatbots betreffen, entfernt aber keine dieser Konfigurationen oder Chatbots.
-- **Fehlende Beschreibung**: Eine fehlende und eine leere Werkzeugbeschreibung sind beide zulässig, aber verschiedene Werte.
-- **Unbekannte Beispielkennung beim Löschen**: Die ausdrücklich belegte Nichtgefunden-Regel für Lesen und Ändern ist nicht identisch für das Löschen festgelegt.
+- **Missing and empty**: A mandatory text must not be missing. For the six core entities, empty texts and pure whitespace are however not excluded. The example text may consist of whitespace but must satisfy the length 2–8 in the example management.
+- **Boundary lengths**: Names of up to 100 characters, server addresses of up to 255 characters and version labels of up to 20 characters are within their limits; one additional character exceeds each of them. For prompt and tool description no domain-level maximum length is defined.
+- **Empty model name**: An empty model name is possible; a second identical empty model name violates uniqueness. Equating differently spelled names is not defined at domain level.
+- **Temperature**: There is no defined default value and no evidenced minimum/maximum; ordinary values such as −1 or 3 are not excluded by a range rule. Non-finite special values are not specified as a domain guarantee.
+- **Multiple configurations**: Even the same chatbot may have multiple configurations with the same model and the same version label. The label determines neither an ordering nor a current or released configuration.
+- **Optional assignments**: A chatbot may exist without a configuration; a configuration without tools, a server without tools and a tool without a configuration assignment are equally permitted.
+- **Inactive duplicate assignment**: An inactive assignment remains in place and prevents a second assignment of the same configuration/tool pair.
+- **Server deletion**: The deletion may affect assignments in several chatbots but removes none of those configurations or chatbots.
+- **Missing description**: A missing and an empty tool description are both permitted but are different values.
+- **Unknown example identifier on deletion**: The explicitly evidenced not-found rule for read and change is not defined identically for deletion.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-Die Anforderungen formulieren die belegten Bestandsregeln. „Vorhanden“ bedeutet, dass ein Wert nicht fehlt; bei Texten bedeutet es nicht automatisch „nicht leer“.
+The requirements state the evidenced as-built rules. "Existing" means that a value is not missing; for texts it does not automatically mean "not empty".
 
-- **FR-001 — Identität**: Jeder Datensatz der sieben Entitätsarten MUSS eine eigene Kennung besitzen, die innerhalb seiner Entitätsart eindeutig ist und bei regulärer Anlage automatisch vergeben wird. Werkzeugzuordnungen sind eigenständig identifizierbare Datensätze.
-- **FR-002 — Chatbot und Modell**: Chatbotname und Modellname MÜSSEN vorhanden sein und dürfen höchstens 100 Zeichen umfassen. Modellnamen MÜSSEN eindeutig sein; exakt gleiche Modellnamen sind unzulässig. Chatbotnamen müssen nicht eindeutig sein.
-- **FR-003 — Konfiguration**: Jede Konfiguration MUSS genau einem vorhandenen Chatbot und genau einem vorhandenen Modell zugeordnet sein. Verhaltensanweisung, numerischer Temperaturwert und Versionsbezeichnung MÜSSEN vorhanden sein; die Versionsbezeichnung darf höchstens 20 Zeichen umfassen.
-- **FR-004 — Erstellungszeitpunkt**: Jede Konfiguration MUSS einen automatisch gesetzten Erstellungszeitpunkt als Zeitpunkt mit Zeitzonenbezug besitzen. Bei regulären Änderungen bleibt dieser erhalten. Daraus folgt keine Garantie, dass der ursprünglich verwendete Zeitzonenname erhalten bleibt.
-- **FR-005 — Konfigurationsvielfalt**: Ein Chatbot MUSS mit 0..n Konfigurationen darstellbar sein. Dasselbe Modell und dieselbe Versionsbezeichnung dürfen mehrfach, auch beim selben Chatbot, verwendet werden. Versionen bestimmen keine belegte Reihenfolge, Unveränderlichkeit oder aktuelle Auswahl.
-- **FR-006 — MCP-Server**: Jeder Server MUSS einen vorhandenen Namen bis 100 Zeichen und einen vorhandenen Adresstext bis 255 Zeichen besitzen. Beide Werte müssen nicht eindeutig sein. Ein Server kann 0..n Werkzeuge besitzen.
-- **FR-007 — MCP-Werkzeug**: Jedes Werkzeug MUSS genau einem vorhandenen Server zugeordnet sein und einen vorhandenen Namen bis 100 Zeichen besitzen. Die Beschreibung ist optional. Werkzeugnamen müssen weder global noch innerhalb desselben Servers eindeutig sein.
-- **FR-008 — Werkzeugaktivierung**: Jede Werkzeugzuordnung MUSS genau eine vorhandene Konfiguration, genau ein vorhandenes Werkzeug und einen Aktivstatus (aktiv/inaktiv) besitzen. Neue Zuordnungen sind standardmäßig aktiv. Der Status gilt ausschließlich für die einzelne Zuordnung; Deaktivieren löscht weder Werkzeug noch Zuordnung.
-- **FR-009 — Zuordnungseindeutigkeit**: Pro Konfiguration und Werkzeug darf höchstens eine Zuordnung existieren, unabhängig von deren Aktivstatus. Eine Konfiguration kann 0..n verschiedene Werkzeuge verwenden; ein Werkzeug kann 0..n verschiedenen Konfigurationen zugeordnet sein.
-- **FR-010 — Löschhindernisse**: Ein Chatbot oder Modell darf nicht gelöscht werden, solange eine Konfiguration darauf verweist. Ohne solche Verweise ist die Löschung durch keine der beschriebenen Beziehungen eingeschränkt.
-- **FR-011 — Abhängige Löschungen**: Löschen einer Konfiguration MUSS ihre Werkzeugzuordnungen entfernen. Löschen eines Werkzeugs MUSS alle zugehörigen Zuordnungen entfernen. Löschen eines Servers MUSS seine Werkzeuge und damit deren Zuordnungen entfernen. Entfernen einer Zuordnung aus einer Konfiguration MUSS diese Zuordnung entfernen. Alle jeweils anderen Datensätze bleiben entsprechend der Beziehungstabelle bestehen.
-- **FR-012 — Gültige Datenzustände**: Fehlende Pflichtwerte, fehlende oder nicht vorhandene Pflichtreferenzen, überschrittene Längengrenzen und die beiden beschriebenen Eindeutigkeitsverletzungen sind unzulässig. Ein abhängiger Datensatz MUSS jeweils genau das in der Beziehungstabelle benannte vorhandene übergeordnete Objekt referenzieren.
-- **FR-013 — Bestandsgrenzen**: Für die Kernentitäten sind keine Mindesttextlänge, kein Ausschluss reiner Leerzeichen, keine Adressformatprüfung, kein Temperaturbereich und kein Versionsformat belegt. Für Verhaltensanweisung und Werkzeugbeschreibung ist keine fachliche Maximallänge definiert. Zusätzliche Regeln dürfen nicht als bereits bestehende Geschäftsregeln dargestellt werden.
-- **FR-014 — Beispieltext**: Ein Beispieldatensatz MUSS einen vorhandenen Text mit höchstens 8 Zeichen besitzen. Die Beispielverwaltung prüft zusätzlich die Mindestlänge 2; Text-Eindeutigkeit und Ausschluss reiner Leerzeichen sind nicht vorgeschrieben. Die untere Grenze ist nicht auf jeder Speicherungsebene gleich abgesichert.
-- **FR-015 — Beispielverwaltung**: Erstellen, Lesen, seitenweises Lesen, Ändern und Löschen sind für die Beispielentität belegt. Lese- oder Schreibberechtigung genügt zum Lesen; Erstellen, Ändern und Löschen erfordern Schreibberechtigung. Reguläres Ändern des Textes MUSS die Kennung erhalten.
-- **FR-016 — Beispielsuche und Seiten**: Lesen oder Ändern einer unbekannten Beispielkennung MUSS „nicht gefunden“ melden. Ohne weitere Angaben beginnt die seitenweise Anzeige bei Seite 0 mit bis zu 10 Datensätzen. Seitennummern MÜSSEN nicht negativ und Seitengrößen positiv sein. Eine feste Reihenfolge oder fachliche maximale Seitengröße ist nicht belegt.
-- **FR-017 — Dokumentationsvollständigkeit**: Diese Spezifikation MUSS alle sieben Entitäten, ihre sämtlichen Attribute einschließlich Kennungen, alle fünf direkten Beziehungen sowie belegte Validierungen und Löschregeln beschreiben. Abnahme: Vergleich mit dem Quelleninventar ohne fehlendes Attribut, fehlende Beziehung oder unbelegt ergänzte Geschäftsregel.
+- **FR-001 — Identity**: Every record of the seven entity kinds MUST have its own identifier that is unique within its entity kind and is assigned automatically on regular creation. Tool assignments are independently identifiable records.
+- **FR-002 — Chatbot and model**: Chatbot name and model name MUST exist and must be at most 100 characters long. Model names MUST be unique; exactly equal model names are not permitted. Chatbot names need not be unique.
+- **FR-003 — Configuration**: Every configuration MUST be assigned to exactly one existing chatbot and exactly one existing model. Prompt, numeric temperature value and version label MUST exist; the version label must be at most 20 characters long.
+- **FR-004 — Creation timestamp**: Every configuration MUST have an automatically set creation timestamp as a time zone-aware point in time. Regular changes preserve it. No guarantee follows that the originally used time zone name is preserved.
+- **FR-005 — Configuration variety**: A chatbot MUST be representable with 0..n configurations. The same model and the same version label may be used multiple times, including for the same chatbot. Versions do not determine any evidenced ordering, immutability or current selection.
+- **FR-006 — MCP server**: Every server MUST have an existing name of up to 100 characters and an existing address text of up to 255 characters. Neither value needs to be unique. A server may have 0..n tools.
+- **FR-007 — MCP tool**: Every tool MUST be assigned to exactly one existing server and have an existing name of up to 100 characters. The description is optional. Tool names need not be unique globally or within the same server.
+- **FR-008 — Tool activation**: Every tool assignment MUST have exactly one existing configuration, exactly one existing tool and an active flag (active/inactive). New assignments are active by default. The flag applies solely to the individual assignment; deactivating deletes neither the tool nor the assignment.
+- **FR-009 — Assignment uniqueness**: Per configuration and tool, at most one assignment may exist, regardless of its active flag. A configuration may use 0..n different tools; a tool may be assigned to 0..n different configurations.
+- **FR-010 — Deletion barriers**: A chatbot or model must not be deleted while a configuration references it. Without such references, the deletion is not restricted by any of the described relationships.
+- **FR-011 — Dependent deletions**: Deleting a configuration MUST remove its tool assignments. Deleting a tool MUST remove all associated assignments. Deleting a server MUST remove its tools and thereby their assignments. Removing an assignment from a configuration MUST remove that assignment. All other records remain according to the relationship table.
+- **FR-012 — Valid data states**: Missing mandatory values, missing or non-existent mandatory references, exceeded length limits and the two described uniqueness violations are not permitted. A dependent record MUST reference exactly the existing parent object named in the relationship table.
+- **FR-013 — As-built limits**: For the core entities no minimum text length, no exclusion of pure whitespace, no address format check, no temperature range and no version format are evidenced. For prompt and tool description no domain-level maximum length is defined. Additional rules must not be presented as already existing business rules.
+- **FR-014 — Example text**: An example record MUST have an existing text of at most 8 characters. The example management additionally enforces the minimum length 2; text uniqueness and exclusion of pure whitespace are not mandated. The lower bound is not enforced equally at every storage level.
+- **FR-015 — Example management**: Create, read, paginated read, change and delete are evidenced for the example entity. Read or write permission suffices for reading; create, change and delete require write permission. Regularly changing the text MUST preserve the identifier.
+- **FR-016 — Example lookup and pages**: Reading or changing an unknown example identifier MUST report "not found". Without further parameters, paginated display starts at page 0 with up to 10 records. Page numbers MUST be non-negative and page sizes positive. A fixed ordering or domain-level maximum page size is not evidenced.
+- **FR-017 — Documentation completeness**: This specification MUST describe all seven entities, all their attributes including identifiers, all five direct relationships and the evidenced validations and delete rules. Acceptance: comparison against the source inventory without a missing attribute, missing relationship or unevidenced added business rule.
+
+### Implementation Traceability (as-built)
+
+The feature is implemented in `admin-backend/` as merged by PR #29. Each requirement maps to its implementing sources; detailed line references are in [data-model.md](data-model.md).
+
+| Requirements | Implementing sources |
+| --- | --- |
+| FR-001 | `common/BaseEntity.java` (UUID identity for all entities); UUID primary keys in all migrations |
+| FR-002 | `chatbot/Chatbot.java`, `model/Model.java`; `schema/V002__Project_Init.sql` (name columns, model name UNIQUE) |
+| FR-003 | `chatbot/ChatbotConfig.java`; `schema/V002__Project_Init.sql` (mandatory FKs, prompt, temperature, version) |
+| FR-004 | `ChatbotConfig.java` (`@CreationTimestamp`, `updatable = false`); `created_at` default in V002 |
+| FR-005 | `ChatbotConfig.java`; absence of a uniqueness rule on (chatbot, version) in V002 |
+| FR-006 | `mcp/McpServer.java`; `schema/V003__Add_MCP.sql` |
+| FR-007 | `mcp/McpTool.java`; `schema/V003__Add_MCP.sql` (mandatory server FK) |
+| FR-008 | `mcp/ChatbotTool.java`; `schema/V003__Add_MCP.sql` (`is_active` default `TRUE`) |
+| FR-009 | `uq_chatbot_config_tool` in V003 and `@Table` constraint in `ChatbotTool.java` |
+| FR-010 | `fk_chatbot_config_chatbot`, `fk_chatbot_config_model` with `NO ACTION` in V002 |
+| FR-011 | `fk_mcp_tool_server`, `fk_chatbot_tool_config`, `fk_chatbot_tool_tool` with `CASCADE` in V003; `orphanRemoval = true` on `ChatbotConfig.chatbotTools` |
+| FR-012 | `NOT NULL` columns and mandatory foreign keys across V002/V003 |
+| FR-013 | Absence of `CHECK` constraints and of Bean Validation on the core entities (negative evidence, see data-model.md) |
+| FR-014–016 | `theentity/TheEntity.java`, `theentity/dto/TheEntityRequestDTO.java`, `TheEntityController.java`, `TheEntityService.java`, `security/Authorities.java`; `schema/V001__TheEntity_schema.sql` |
+| FR-017 | This specification together with [data-model.md](data-model.md) |
+
+Schema-level rules (FR-001–012) are additionally verified by `admin-backend/src/test/java/de/muenchen/oss/refarch/backend/CoreDomainSchemaIntegrationTest`, which runs against the Flyway-managed schema (V001–V003).
 
 ### Key Entities *(include if feature involves data)*
 
-Jede Entität besitzt zusätzlich zu den folgenden Fachattributen eine eigene Kennung (`id`) nach FR-001. Die Namen in Klammern ermöglichen den Bestandsabgleich, ohne eine Umsetzung vorzugeben.
+Each entity owns, in addition to the domain attributes listed below, its own identifier (`id`) per FR-001. The names in parentheses enable the as-built comparison without prescribing an implementation.
 
-| Entität | Fachliche Bedeutung | Vollständige Fachattribute und Regeln |
+| Entity | Domain meaning | Full domain attributes and rules |
 | --- | --- | --- |
-| Chatbot (`Chatbot`) | Benannter Chatbot mit separat geführten Einstellungen. | Name (`name`): vorhanden, höchstens 100 Zeichen, nicht zwingend eindeutig. |
-| Modell (`Model`) | Namentlich identifiziertes, wiederverwendbares KI-Modell. | Modellname (`modelName`): vorhanden, höchstens 100 Zeichen, eindeutig. |
-| Konfiguration (`ChatbotConfig`) | Einstellungen eines bestimmten Chatbots einschließlich Modellbezug. | Chatbot (`chatbot`): genau einer, vorhanden. Modell (`model`): genau eines, vorhanden. Verhaltensanweisung (`prompt`): vorhandener Text ohne festgelegte fachliche Maximallänge. Temperatur (`temperature`): vorhandener numerischer Wert, ohne festgelegten Bereich oder Standardwert. Versionsbezeichnung (`version`): vorhanden, höchstens 20 Zeichen, nicht eindeutig. Erstellungszeitpunkt (`createdAt`): vorhanden, automatisch gesetzt, bei regulärer Änderung erhalten, mit Zeitzonenbezug. Werkzeugzuordnungen (`chatbotTools`): 0..n, initial leer, ohne belegte Reihenfolge. |
-| MCP-Server (`McpServer`) | Anbieter von Werkzeugen. | Name (`name`): vorhanden, höchstens 100 Zeichen. Adresse (`url`): vorhandener Text, höchstens 255 Zeichen. Beide nicht zwingend eindeutig; keine belegte Adressformatprüfung. |
-| MCP-Werkzeug (`McpTool`) | Benannte Fähigkeit eines bestimmten Servers. | Server (`mcpServer`): genau einer, vorhanden. Name (`name`): vorhanden, höchstens 100 Zeichen, nicht zwingend eindeutig. Beschreibung (`description`): optionaler Text ohne festgelegte fachliche Maximallänge. |
-| Werkzeugzuordnung (`ChatbotTool`) | Verbindung von Konfiguration und Werkzeug mit konfigurationsbezogenem Aktivstatus. | Konfiguration (`chatbotConfig`): genau eine, vorhanden. Werkzeug (`mcpTool`): genau eines, vorhanden. Aktivstatus (`isActive`): vorhanden, aktiv/inaktiv, standardmäßig aktiv. Kombination aus Konfiguration und Werkzeug eindeutig. |
-| Beispieldatensatz (`TheEntity`) | Isolierter Beispieldatensatz ohne belegte Bedeutung in der Chatbot-Domäne. | Text (`textAttribute`): vorhanden, gespeichert höchstens 8 Zeichen; bei der Beispielverwaltung zusätzlich Mindestlänge 2, nicht zwingend eindeutig. Keine Beziehungen zu den anderen Entitäten. |
+| Chatbot (`Chatbot`) | Named chatbot with separately managed settings. | Name (`name`): existing, at most 100 characters, not necessarily unique. |
+| Model (`Model`) | Reusable AI model identified by name. | Model name (`modelName`): existing, at most 100 characters, unique. |
+| Configuration (`ChatbotConfig`) | Settings of a specific chatbot including model reference. | Chatbot (`chatbot`): exactly one, existing. Model (`model`): exactly one, existing. Prompt (`prompt`): existing text without a defined domain-level maximum length. Temperature (`temperature`): existing numeric value, without a defined range or default. Version label (`version`): existing, at most 20 characters, not unique. Creation timestamp (`createdAt`): existing, automatically set, preserved on regular change, time zone-aware. Tool assignments (`chatbotTools`): 0..n, initially empty, without an evidenced ordering. |
+| MCP server (`McpServer`) | Provider of tools. | Name (`name`): existing, at most 100 characters. Address (`url`): existing text, at most 255 characters. Neither necessarily unique; no evidenced address format check. |
+| MCP tool (`McpTool`) | Named capability of a specific server. | Server (`mcpServer`): exactly one, existing. Name (`name`): existing, at most 100 characters, not necessarily unique. Description (`description`): optional text without a defined domain-level maximum length. |
+| Tool assignment (`ChatbotTool`) | Connection of configuration and tool with a configuration-scoped active flag. | Configuration (`chatbotConfig`): exactly one, existing. Tool (`mcpTool`): exactly one, existing. Active flag (`isActive`): existing, active/inactive, active by default. The combination of configuration and tool is unique. |
+| Example record (`TheEntity`) | Isolated example record without an evidenced meaning in the chatbot domain. | Text (`textAttribute`): existing, stored with at most 8 characters; in the example management additionally minimum length 2, not necessarily unique. No relationships to the other entities. |
 
-Die gemeinsame Kennung ist eine Identitätseigenschaft und keine zusätzliche fachliche Entität. Die Sammlung von Werkzeugzuordnungen ist eine Beziehung, kein zusätzliches Datenobjekt.
+The shared identifier is an identity property, not an additional domain entity. The collection of tool assignments is a relationship, not an additional data object.
 
-#### Beziehungen und Lebenszyklus
+#### Relationships and Lifecycle
 
-| Übergeordnetes Objekt | Abhängiges Objekt | Kardinalität und Pflichtbezug | Folge der Löschung des übergeordneten Objekts |
+| Parent object | Dependent object | Cardinality and mandatory reference | Consequence of deleting the parent object |
 | --- | --- | --- | --- |
-| Chatbot | Konfiguration | Chatbot hat 0..n Konfigurationen; jede Konfiguration genau 1 Chatbot. | Verhindert, solange eine Konfiguration darauf verweist. |
-| Modell | Konfiguration | Modell hat 0..n Konfigurationen; jede Konfiguration genau 1 Modell. | Verhindert, solange eine Konfiguration darauf verweist. |
-| MCP-Server | MCP-Werkzeug | Server hat 0..n Werkzeuge; jedes Werkzeug genau 1 Server. | Werkzeuge und deren Werkzeugzuordnungen entfallen; Konfigurationen bleiben bestehen. |
-| Konfiguration | Werkzeugzuordnung | Konfiguration hat 0..n Zuordnungen; jede Zuordnung genau 1 Konfiguration. | Zuordnungen entfallen; Werkzeuge, Server, Chatbot und Modell bleiben bestehen. |
-| MCP-Werkzeug | Werkzeugzuordnung | Werkzeug hat 0..n Zuordnungen; jede Zuordnung genau 1 Werkzeug. | Zuordnungen entfallen; Konfigurationen und Server bleiben bestehen. |
+| Chatbot | Configuration | Chatbot has 0..n configurations; each configuration exactly 1 chatbot. | Prevented while a configuration references it. |
+| Model | Configuration | Model has 0..n configurations; each configuration exactly 1 model. | Prevented while a configuration references it. |
+| MCP server | MCP tool | Server has 0..n tools; each tool exactly 1 server. | Tools and their tool assignments are removed; configurations remain. |
+| Configuration | Tool assignment | Configuration has 0..n assignments; each assignment exactly 1 configuration. | Assignments are removed; tools, servers, chatbot and model remain. |
+| MCP tool | Tool assignment | Tool has 0..n assignments; each assignment exactly 1 tool. | Assignments are removed; configurations and servers remain. |
 
-Diese fünf direkten Beziehungen vermitteln eine auf beiden Seiten optionale n:m-Beziehung zwischen Konfiguration und Werkzeug. Das Löschen einer Zuordnung entfernt weder ihr Werkzeug noch ihre Konfiguration. Das Entfernen eines abhängigen Datensatzes löscht kein übergeordnetes Objekt.
+These five direct relationships mediate an n:m relationship between configuration and tool that is optional on both sides. Deleting an assignment removes neither its tool nor its configuration. Removing a dependent record does not delete a parent object.
 
-#### Validierungsmatrix
+#### Validation Matrix
 
-| Regelgruppe | Geltungsbereich | Zulässig | Unzulässig oder nicht festgelegt |
+| Rule group | Scope | Permitted | Not permitted or not defined |
 | --- | --- | --- | --- |
-| Identität | Alle sieben Entitäten | Eigene vergebene Kennung je Datensatz. | Fehlende oder innerhalb einer Entitätsart doppelte Kennung. |
-| Pflichtname und Länge | Chatbot, Modell, Server, Werkzeug | Vorhandener Name bis 100 Zeichen, auch leer. | Fehlender Name oder mehr als 100 Zeichen. |
-| Serveradresse | Server | Vorhandener Adresstext bis 255 Zeichen, auch leer. | Fehlender Wert oder mehr als 255 Zeichen; keine zusätzliche Formatprüfung belegt. |
-| Verhaltensanweisung | Konfiguration | Vorhandener Text, auch leer. | Fehlender Wert; keine fachliche Maximallänge belegt. |
-| Temperatur | Konfiguration | Vorhandener numerischer Wert. | Fehlender Wert; Bereich, Standardwert und fachliches Sonderwertverhalten nicht festgelegt. |
-| Versionsbezeichnung | Konfiguration | Vorhandener Text bis 20 Zeichen, auch leer oder mehrfach verwendet. | Fehlender Wert oder mehr als 20 Zeichen; Format und Eindeutigkeit nicht festgelegt. |
-| Erstellungszeitpunkt | Konfiguration | Automatisch gesetzter Zeitpunkt, bei regulärer Änderung erhalten. | Fehlender Zeitpunkt; reguläre Änderungen dürfen ihn nicht ersetzen. |
-| Beschreibung | Werkzeug | Fehlender oder vorhandener Text, auch leer. | Keine zusätzliche fachliche Längen- oder Inhaltsregel belegt. |
-| Pflichtbeziehung | Fünf direkte Beziehungen | Genau ein vorhandenes übergeordnetes Objekt je abhängigem Datensatz. | Fehlender Bezug oder nicht vorhandenes Ziel. |
-| Modellnamen-Eindeutigkeit | Modell | Unterschiedliche Namen. | Exakt gleiche Namen, einschließlich zweier leerer Namen; weitere Namensnormalisierung nicht festgelegt. |
-| Zuordnungseindeutigkeit | Werkzeugzuordnung | Unterschiedliche Konfiguration/Werkzeug-Paare. | Gleiches Paar mehrfach, unabhängig vom Aktivstatus. |
-| Aktivstatus | Werkzeugzuordnung | Aktiv/inaktiv; ohne abweichende Angabe aktiv. | Fehlender Status eines bestehenden Datensatzes. |
-| Beispieltext | Beispieldatensatz und Beispielverwaltung | Gespeicherter vorhandener Text bis 8 Zeichen; bei der Beispielverwaltung zusätzlich mindestens 2. Reine Leerzeichen innerhalb dieser Grenzen sind zulässig. | Fehlender Text oder mehr als 8 Zeichen; in der Beispielverwaltung zusätzlich weniger als 2. Mindestlänge nicht auf jeder Speicherungsebene abgesichert. |
-| Beispielberechtigung | Beispielverwaltung | Lesen mit Lese-/Schreibberechtigung; Änderungen mit Schreibberechtigung. | Änderungen ohne Schreibberechtigung; keine Übertragung auf Kernentitäten belegt. |
-| Beispielseiten | Beispielverwaltung | Seitennummer ab 0, Größe ab 1; Standard erste Seite, Größe 10. | Negative Seitennummer oder nicht positive Größe; feste Reihenfolge und maximale Größe nicht festgelegt. |
+| Identity | All seven entities | Own assigned identifier per record. | Missing identifier or duplicate within an entity kind. |
+| Mandatory name and length | Chatbot, model, server, tool | Existing name of up to 100 characters, including empty. | Missing name or more than 100 characters. |
+| Server address | Server | Existing address text of up to 255 characters, including empty. | Missing value or more than 255 characters; no additional format check evidenced. |
+| Prompt | Configuration | Existing text, including empty. | Missing value; no domain-level maximum length evidenced. |
+| Temperature | Configuration | Existing numeric value. | Missing value; range, default and domain-level special-value behavior not defined. |
+| Version label | Configuration | Existing text of up to 20 characters, including empty or used multiple times. | Missing value or more than 20 characters; format and uniqueness not defined. |
+| Creation timestamp | Configuration | Automatically set timestamp, preserved on regular change. | Missing timestamp; regular changes must not replace it. |
+| Description | Tool | Missing or existing text, including empty. | No additional domain-level length or content rule evidenced. |
+| Mandatory relationship | Five direct relationships | Exactly one existing parent object per dependent record. | Missing reference or non-existent target. |
+| Model name uniqueness | Model | Different names. | Exactly equal names, including two empty names; further name normalization not defined. |
+| Assignment uniqueness | Tool assignment | Different configuration/tool pairs. | Same pair multiple times, regardless of the active flag. |
+| Active flag | Tool assignment | Active/inactive; active unless stated otherwise. | Missing flag of an existing record. |
+| Example text | Example record and example management | Stored existing text of up to 8 characters; in the example management additionally at least 2. Pure whitespace within these limits is permitted. | Missing text or more than 8 characters; in the example management additionally less than 2. Minimum length not enforced at every storage level. |
+| Example permission | Example management | Read with read or write permission; changes with write permission. | Changes without write permission; no transfer to the core entities evidenced. |
+| Example pages | Example management | Page number from 0, size from 1; default first page, size 10. | Negative page number or non-positive size; fixed ordering and maximum size not defined. |
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001 — Vollständigkeit**: 100 % der sechs Kernentitäten und der einen Beispielentität, ihrer Attribute und der fünf direkten Beziehungen sind beschrieben; beim Bestandsabgleich bleibt kein Element ohne Zuordnung.
-- **SC-002 — Prüfbarkeit**: Für jede der 15 Regelgruppen kann eine fachlich prüfende Person anhand der Spezifikation zulässige, unzulässige und nicht festgelegte Fälle unterscheiden. Alle 17 Anforderungen besitzen Akzeptanzszenarien oder einen ausdrücklich benannten Vollständigkeitsvergleich.
-- **SC-003 — Löschfolgen**: Für alle fünf direkten Beziehungen sowie das Entfernen einer einzelnen Werkzeugzuordnung sind erhaltene und entfallende Datensätze beziehungsweise Löschhindernisse ohne Zusatzannahmen bestimmbar.
-- **SC-004 — Verständlichkeit**: Bei einer fachlichen Abnahme können zwei verantwortliche Personen unabhängig alle vier Abläufe erklären und die Ergebnisse der 21 Akzeptanzszenarien übereinstimmend begründen; keine widersprüchliche Regelinterpretation bleibt offen.
-- **SC-005 — Bestandstreue**: Bei der Prüfung gegen das Quelleninventar gibt es null unbelegt ergänzte Pflichtvalidierungen, Versionsauswahlregeln oder Aussagen über bereits bedienbare Kernverwaltungsfunktionen.
+- **SC-001 — Completeness**: 100 % of the six core entities and the one example entity, their attributes and the five direct relationships are described; the as-built comparison leaves no element unmapped.
+- **SC-002 — Verifiability**: For each of the 15 rule groups, a person reviewing the domain can distinguish permitted, not-permitted and not-defined cases from this specification. All 17 requirements have acceptance scenarios or an explicitly named completeness comparison.
+- **SC-003 — Delete consequences**: For all five direct relationships and for removing a single tool assignment, the preserved and removed records or deletion barriers are determinable without additional assumptions.
+- **SC-004 — Comprehensibility**: In a domain acceptance review, two responsible persons can independently explain all four flows and justify the outcomes of the 21 acceptance scenarios consistently; no contradictory rule interpretation remains open.
+- **SC-005 — As-built fidelity**: In the review against the source inventory there are zero unevidenced added mandatory validations, version selection rules or claims of already operable core management functions.
 
-Die Erfolgskriterien bewerten das Dokumentationsergebnis. Neue Laufzeit-, Last- oder Bedienzeitziele für das Produkt sind aus dem Bestand nicht abgeleitet. Die fachliche Abnahme durch zwei Personen ist ein überprüfbares Ziel, kein bereits ausgeführter Nachweis.
+The success criteria assess this specification against the implemented state. New runtime, load or usability targets for the product are not derived from the as-built state. The domain acceptance by two persons is a verifiable goal, not an already executed proof.
 
 ## Assumptions
 
-- **Belegbasis**: Maßgeblich sind die vorhandenen Quellen am 2026-11-17, nicht der ausgelesene Zustand einer laufenden Datenbank. Das Java-Modell liegt unter einem vom Auftrag abweichenden Basispaket; die tatsächlichen Pfade und Einzelbelege stehen in [source-analysis.md](source-analysis.md).
-- **Scope**: Die Kerndomäne umfasst Chatbots und deren Konfigurationen, den Modellkatalog sowie MCP-Server, Werkzeuge und Zuordnungen. Der isolierte Beispieldatensatz wird der Vollständigkeit halber aufgenommen. Gespräche, Nachrichten, Nutzendenprofile, Wissensbestände, Mandanten, Abrechnung und Veröffentlichungs-/Freigabestatus sind in der untersuchten Belegbasis nicht als eigene fachliche Datenobjekte definiert.
-- **Akteure und Grundsätze**: „Fachlich verantwortliche Person“ ist die angenommene Perspektive für die Beschreibung des Datenmodells, keine belegte konkrete Berechtigungsrolle der Kernentitäten. Die Projektgrundsätze trennen interne Verwaltung und öffentliche Nutzung; eine konkrete Rechtezuordnung für die sechs Kernentitäten ist aus dem Modell nicht ableitbar. Die belegten Lese-/Schreibrollen betreffen die Beispielverwaltung.
-- **Bedienbarkeit**: Die Szenarien formulieren gültige Bestandsdaten und Änderungen. Eigene Verwaltungsfunktionen oder fachliche Suchregeln der sechs Kernentitäten sind nicht belegt. Eine aktive Werkzeugzuordnung garantiert weder Ausführung noch Erreichbarkeit des Servers oder Verfügbarkeit des Modells.
-- **Abhängigkeiten**: Konfigurationen benötigen bestehende Chatbots und Modelle; Werkzeuge benötigen bestehende Server; Zuordnungen benötigen bestehende Konfigurationen und Werkzeuge. Die Beteiligten können ansonsten ohne abhängige Datensätze existieren.
-- **Validierungsebenen**: Die Regelbeschreibung ist keine Zusage einer frühen Eingabeprüfung oder bestimmter Fehlermeldungen für die Kernentitäten. Die Beispielverwaltung prüft ihre Mindesttextlänge zusätzlich bei Eingaben; die Speicherung sichert diese untere Grenze nicht überall ab. Der Erstellungszeitpunkt bleibt bei regulären Konfigurationsänderungen erhalten; ein Schutz gegen Änderungen über jeden möglichen Speicherzugriff ist nicht belegt. Die technische Unterscheidung steht in der Quellenanalyse.
-- **Textlänge**: Grenzfallprüfungen beziehen sich auf gewöhnliche Buchstaben. Eine für alle Unicode-Sonderzeichen einheitliche Zählung sichtbarer Zeichen ist aus den vorhandenen Regeln nicht ableitbar.
-- **Version und Status**: Die Versionsbezeichnung ist frei vergeben, ohne belegte Format- oder Auswahlregel. Aktivierung betrifft nur die Werkzeugzuordnung. Weitergehende Archivierungs-/Freigabeprozesse, Aufbewahrungsfristen, fachliche Sortierungen oder Namensnormalisierungen werden mangels Beleg nicht festgelegt.
-- **Governance**: Die aktuelle Projektverfassung und das tatsächliche Java-Basispaket weichen voneinander ab. Die Dokumentation hält den Bestand fest; eine spätere strukturelle Umsetzung benötigt den in der Verfassung vorgesehenen Abgleich. Die Paketabweichung ist in der Quellenanalyse konkret benannt.
+- **Evidence base**: The authoritative basis is the versioned source state as of 2026-11-27 (identical to `main` since PR #29), not the inspected state of a running database. The Java model lives under a base package deviating from the constitution; the actual paths and individual evidence are in [data-model.md](data-model.md).
+- **Scope**: The core domain comprises chatbots and their configurations, the model catalogue as well as MCP servers, tools and assignments. The isolated example record is included for completeness. Conversations, messages, user profiles, knowledge sources, tenants, billing and publication/release status are not defined as separate domain data objects in the examined evidence base.
+- **Actors and principles**: "Data steward" is the assumed perspective for describing the data model, not an evidenced concrete permission role of the core entities. The project principles separate internal administration and public use; a concrete permission mapping for the six core entities is not derivable from the model. The evidenced read/write roles concern the example management.
+- **Operability**: The scenarios state valid as-built data and changes. Dedicated management functions or domain search rules for the six core entities are not evidenced. An active tool assignment guarantees neither execution nor reachability of the server or availability of the model.
+- **Dependencies**: Configurations require existing chatbots and models; tools require existing servers; assignments require existing configurations and tools. Otherwise the participants can exist without dependent records.
+- **Validation levels**: The rule description is not a promise of early input validation or specific error messages for the core entities. The example management additionally checks its minimum text length on input; storage does not enforce this lower bound everywhere. The creation timestamp is preserved on regular configuration changes; protection against changes via every possible storage access is not evidenced. The technical distinction is in the source analysis.
+- **Text length**: Boundary-case checks refer to ordinary letters. A uniform counting of visible characters across all Unicode special characters is not derivable from the existing rules.
+- **Version and status**: The version label is freely assigned, without an evidenced format or selection rule. Activation concerns only the tool assignment. Further archiving/release processes, retention periods, domain-level sortings or name normalizations are not defined for lack of evidence.
+- **Governance**: The project constitution (v2.3.0, 2026-11-27) and the actual Java base package deviate from each other: the constitution names `de.muenchen.oss.muchabo`, the implemented code uses `de.muenchen.oss.refarch.backend`. This specification records the as-built state; the fix is a separate package rename change with its own constitution alignment, not part of this feature. The deviation is concretely named in the source analysis.

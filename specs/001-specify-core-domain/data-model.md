@@ -1,170 +1,170 @@
-# Data Model: Datenbankschema-Ist-Zustand von muchabo
+# Data Model: As-Built Database Schema of muchabo
 
-**Stand**: 2026-11-17
+**As of**: 2026-11-27 (source state identical to `main` since PR #29; first documented 2026-11-17)
 
 **Feature**: `specs/001-specify-core-domain`
 
-**Bezug**: [spec.md](spec.md), [plan.md](plan.md), [source-analysis.md](source-analysis.md)
+**References**: [spec.md](spec.md), [plan.md](plan.md)
 
-## 1. Belegbasis und Umfang
+## 1. Evidence Base and Scope
 
-Dieses Dokument beschreibt das aus den vorhandenen Migrationen V001–V003 und Java-Entitäten rekonstruierbare Anwendungsschema. Ob diese Migrationen in einer konkreten Datenbank angewandt wurden und ob dort manuelle Abweichungen existieren, wurde nicht durch eine Live-Abfrage untersucht.
+This document describes the application schema reconstructable from the existing migrations V001–V003 and the Java entities. Whether these migrations were applied to a concrete database and whether manual deviations exist there was not investigated by a live query.
 
-Projektbezogene Basispfade für die folgenden Quellenangaben:
+Project-relative base paths for the following source references:
 
 - **J**: `admin-backend/src/main/java/de/muenchen/oss/refarch/backend/`.
 - **M**: `admin-backend/src/main/resources/db/migration/`.
 
-Schemaquelle sind M `schema/V001__TheEntity_schema.sql`, `schema/V002__Project_Init.sql` und `schema/V003__Add_MCP.sql`. Entitätsmapping und Bean Validation ergänzen diese Datenbankregeln. M `testdata/R__Testdata.sql` verändert ausschließlich Beispieldaten.
+The schema source is M `schema/V001__TheEntity_schema.sql`, `schema/V002__Project_Init.sql`, and `schema/V003__Add_MCP.sql`. Entity mapping and Bean Validation supplement these database rules. M `testdata/R__Testdata.sql` modifies example data only.
 
-**Inventar**: 7 Anwendungstabellen, 24 gespeicherte Spalten, 7 Primärschlüssel, 2 zusätzliche Unique-Constraints und 5 Fremdschlüssel. Nur `mcp_tool.description` ist nullable; die übrigen 23 Spalten sind ausdrücklich oder durch den Primärschlüssel nicht-null. Sechs Tabellen bilden die Kerndomäne; `the_entity` ist isolierter Beispielbestand.
+**Inventory**: 7 application tables, 24 stored columns, 7 primary keys, 2 additional unique constraints, and 5 foreign keys. Only `mcp_tool.description` is nullable; the remaining 23 columns are non-null explicitly or by virtue of the primary key. Six tables form the core domain; `the_entity` is an isolated example as-built state.
 
-Tabellennamen werden in SQL ohne Schemapräfix verwendet. Das tatsächliche PostgreSQL-Schema hängt von der Ausführungsumgebung und ihrem `search_path` ab. Eine durch Flyway verwaltete Schema-Historientabelle ist kein von diesen Migrationen definiertes fachliches Objekt und gehört nicht zu den sieben Anwendungstabellen.
+Table names are used in SQL without a schema prefix. The actual PostgreSQL schema depends on the execution environment and its `search_path`. A Flyway-managed schema history table is not a domain-level object defined by these migrations and does not count among the seven application tables.
 
-## 2. Gemeinsame Identität und Notation
+## 2. Shared Identity and Notation
 
-J `common/BaseEntity.java:17–31` ist eine `@MappedSuperclass` mit `UUID id`, `@Id` und `@GeneratedValue(strategy = GenerationType.UUID)`. Alle sieben Entitäten erben diese Kennung; eine eigene Tabelle für `BaseEntity` existiert nicht. Das Mapping-Attribut `length = 36` ändert den SQL-Typ `UUID` nicht zu einer Textspalte. `serialVersionUID` ist kein gespeichertes Fachattribut.
+J `common/BaseEntity.java:17–31` is a `@MappedSuperclass` with `UUID id`, `@Id`, and `@GeneratedValue(strategy = GenerationType.UUID)`. All seven entities inherit this identifier; a separate table for `BaseEntity` does not exist. The mapping attribute `length = 36` does not change the SQL type `UUID` into a text column. `serialVersionUID` is not a stored domain attribute.
 
-Alle Tabellen besitzen `id UUID` als Primärschlüssel. Die sechs Kerntabellen haben zusätzlich den SQL-Default `gen_random_uuid()`; `the_entity.id` hat keinen SQL-Default. Reguläre Anlage über das Java-Objektmodell generiert daher auch Beispielkennungen, direkte SQL-Anlage benötigt dort eine bereitgestellte Kennung.
+All tables have `id UUID` as primary key. The six core tables additionally have the SQL default `gen_random_uuid()`; `the_entity.id` has no SQL default. Regular creation via the Java object model therefore also generates example identifiers; direct SQL creation there requires a provided identifier.
 
-„Keiner“ in einer Default-Spalte bedeutet, dass die Migration keinen SQL-Default vorgibt. Defaults greifen bei ausgelassener Spalte oder Verwendung des Defaults, nicht bei explizitem `NULL`. Bei nullable Spalten ohne Default kann Auslassung zu `NULL` führen; bei Pflichtspalten muss der erforderliche Wert bereitgestellt werden.
+"None" in a Default column means that the migration does not prescribe an SQL default. Defaults apply when the column is omitted or the default is used, not when `NULL` is explicit. For nullable columns without a default, omission can result in `NULL`; for mandatory columns, the required value must be provided.
 
-## 3. Tabellen und Spalten
+## 3. Tables and Columns
 
-### 3.1 `chatbot` — Benannter Chatbot
+### 3.1 `chatbot` — Named Chatbot
 
-**Quellen**: J `chatbot/Chatbot.java:18–23`; M `schema/V002__Project_Init.sql:6–9`.
+**Sources**: J `chatbot/Chatbot.java:18–23`; M `schema/V002__Project_Init.sql:6–9`.
 
-| Spalte | SQL-Typ | NULL erlaubt | SQL-Default | Datenbankregel | Java-Attribut / Typ |
+| Column | SQL Type | NULL allowed | SQL Default | Database Rule | Java Attribute / Type |
 | --- | --- | --- | --- | --- | --- |
-| `id` | `UUID` | Nein | `gen_random_uuid()` | Primärschlüssel | `id: UUID`, geerbt |
-| `name` | `VARCHAR(100)` | Nein | Keiner | Höchstens 100 Zeichen, nicht eindeutig | `name: String` |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary key | `id: UUID`, inherited |
+| `name` | `VARCHAR(100)` | No | None | At most 100 characters, not unique | `name: String` |
 
-Gleichnamige Chatbots, leere Namen und reine Leerzeichen sind durch diese Regeln nicht ausgeschlossen. Ein Chatbot kann ohne Konfiguration existieren.
+Chatbots with the same name, empty names, and whitespace-only names are not excluded by these rules. A chatbot can exist without a configuration.
 
-### 3.2 `model` — Wiederverwendbares Modell
+### 3.2 `model` — Reusable Model
 
-**Quellen**: J `model/Model.java:18–23`; M `schema/V002__Project_Init.sql:1–4`.
+**Sources**: J `model/Model.java:18–23`; M `schema/V002__Project_Init.sql:1–4`.
 
-| Spalte | SQL-Typ | NULL erlaubt | SQL-Default | Datenbankregel | Java-Attribut / Typ |
+| Column | SQL Type | NULL allowed | SQL Default | Database Rule | Java Attribute / Type |
 | --- | --- | --- | --- | --- | --- |
-| `id` | `UUID` | Nein | `gen_random_uuid()` | Primärschlüssel | `id: UUID`, geerbt |
-| `model_name` | `VARCHAR(100)` | Nein | Keiner | `UNIQUE`, höchstens 100 Zeichen | `modelName: String` |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary key | `id: UUID`, inherited |
+| `model_name` | `VARCHAR(100)` | No | None | `UNIQUE`, at most 100 characters | `modelName: String` |
 
-Es gibt keine Mindesttextlänge und keine fachlich definierte Namensnormalisierung. Ein leerer Modellname ist möglich, aber kein zweiter identischer leerer Name. Das konkrete Vergleichsverhalten einer Datenbankinstanz hängt zusätzlich von ihrer hier nicht explizit festgelegten Kollation ab.
+There is no minimum text length and no domain-level name normalization. An empty model name is possible, but not a second identical empty name. The concrete comparison behavior of a database instance additionally depends on its collation, which is not explicitly defined here.
 
-### 3.3 `chatbot_config` — Chatbot-Konfiguration
+### 3.3 `chatbot_config` — Chatbot Configuration
 
-**Quellen**: J `chatbot/ChatbotConfig.java:29–61`; M `schema/V002__Project_Init.sql:11–23`.
+**Sources**: J `chatbot/ChatbotConfig.java:29–61`; M `schema/V002__Project_Init.sql:11–23`.
 
-| Spalte | SQL-Typ | NULL erlaubt | SQL-Default | Datenbankregel | Java-Attribut / Typ |
+| Column | SQL Type | NULL allowed | SQL Default | Database Rule | Java Attribute / Type |
 | --- | --- | --- | --- | --- | --- |
-| `id` | `UUID` | Nein | `gen_random_uuid()` | Primärschlüssel | `id: UUID`, geerbt |
-| `chatbot_id` | `UUID` | Nein | Keiner | FK auf `chatbot.id` | `chatbot: Chatbot` |
-| `model_id` | `UUID` | Nein | Keiner | FK auf `model.id` | `model: Model` |
-| `prompt` | `TEXT` | Nein | Keiner | Keine zusätzliche Längen-/Inhaltsprüfung | `prompt: String` |
-| `temperature` | `DOUBLE PRECISION` | Nein | Keiner | Kein Bereichs-`CHECK` | `temperature: Double` |
-| `version` | `VARCHAR(20)` | Nein | Keiner | Höchstens 20 Zeichen, nicht eindeutig | `version: String` |
-| `created_at` | `TIMESTAMP WITH TIME ZONE` | Nein | `CURRENT_TIMESTAMP` | Keine SQL-Unveränderlichkeitsregel | `createdAt: OffsetDateTime` |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary key | `id: UUID`, inherited |
+| `chatbot_id` | `UUID` | No | None | FK to `chatbot.id` | `chatbot: Chatbot` |
+| `model_id` | `UUID` | No | None | FK to `model.id` | `model: Model` |
+| `prompt` | `TEXT` | No | None | No additional length/content check | `prompt: String` |
+| `temperature` | `DOUBLE PRECISION` | No | None | No range `CHECK` | `temperature: Double` |
+| `version` | `VARCHAR(20)` | No | None | At most 20 characters, not unique | `version: String` |
+| `created_at` | `TIMESTAMP WITH TIME ZONE` | No | `CURRENT_TIMESTAMP` | No SQL immutability rule | `createdAt: OffsetDateTime` |
 
-Chatbot und Modell sind jeweils `@ManyToOne(fetch = LAZY, optional = false)` mit nicht-null Join-Spalte. Zusätzlich enthält das Java-Objekt `List<ChatbotTool> chatbotTools`: inverse `@OneToMany(mappedBy = "chatbotConfig", cascade = ALL, orphanRemoval = true)`-Beziehung, initial leer. Diese Sammlung ist keine zusätzliche gespeicherte Spalte; eine gespeicherte Reihenfolge ist nicht definiert.
+Chatbot and model are each `@ManyToOne(fetch = LAZY, optional = false)` with a non-null join column. In addition, the Java object contains `List<ChatbotTool> chatbotTools`: an inverse `@OneToMany(mappedBy = "chatbotConfig", cascade = ALL, orphanRemoval = true)` relationship, initially empty. This collection is not an additional stored column; a stored order is not defined.
 
-`createdAt` verwendet `@CreationTimestamp` und `updatable = false`. Hibernate erzeugt den Zeitpunkt bei Anlage und nimmt ihn nicht in reguläre Update-Zuweisungen auf. SQL besitzt einen eigenen Insert-Default, aber keinen Trigger oder Constraint zur Unveränderlichkeit. PostgreSQL speichert einen Zeitpunkt, nicht den ursprünglichen Zeitzonennamen oder Offset als zusätzliche Information. `CURRENT_TIMESTAMP` bezieht sich auf den Beginn der aktuellen Transaktion, nicht zwingend auf einen neuen Zeitpunkt pro Zeile.
+`createdAt` uses `@CreationTimestamp` and `updatable = false`. Hibernate generates the timestamp at creation and does not include it in regular update assignments. SQL has its own insert default, but no trigger or constraint for immutability. PostgreSQL stores a point in time, not the original time zone name or offset as additional information. `CURRENT_TIMESTAMP` refers to the start of the current transaction, not necessarily to a new timestamp per row.
 
-Die Versionsbezeichnung ist kein `@Version`-Locking-Attribut. Weder Format, automatische Reihenfolge, Freigabe-/Aktuellstatus noch Eindeutigkeit je Chatbot ist festgelegt. Für Prompt und Temperatur existiert keine allgemeine Unveränderlichkeitsregel.
+The version label is not a `@Version` locking attribute. Neither format, automatic ordering, release/current status, nor uniqueness per chatbot is defined. For prompt and temperature, no general immutability rule exists.
 
-### 3.4 `mcp_server` — Werkzeuganbieter
+### 3.4 `mcp_server` — Tool Provider
 
-**Quellen**: J `mcp/McpServer.java:18–26`; M `schema/V003__Add_MCP.sql:1–5`.
+**Sources**: J `mcp/McpServer.java:18–26`; M `schema/V003__Add_MCP.sql:1–5`.
 
-| Spalte | SQL-Typ | NULL erlaubt | SQL-Default | Datenbankregel | Java-Attribut / Typ |
+| Column | SQL Type | NULL allowed | SQL Default | Database Rule | Java Attribute / Type |
 | --- | --- | --- | --- | --- | --- |
-| `id` | `UUID` | Nein | `gen_random_uuid()` | Primärschlüssel | `id: UUID`, geerbt |
-| `name` | `VARCHAR(100)` | Nein | Keiner | Höchstens 100 Zeichen, nicht eindeutig | `name: String` |
-| `url` | `VARCHAR(255)` | Nein | Keiner | Höchstens 255 Zeichen, nicht eindeutig | `url: String` |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary key | `id: UUID`, inherited |
+| `name` | `VARCHAR(100)` | No | None | At most 100 characters, not unique | `name: String` |
+| `url` | `VARCHAR(255)` | No | None | At most 255 characters, not unique | `url: String` |
 
-Es gibt keine Adressformat- oder Erreichbarkeitsprüfung. Vorhandene, aber leere Texte sind auf Schemaebene zulässig. Ein Server kann ohne Werkzeuge existieren.
+There is no address format or reachability check. Present but empty texts are permitted at the schema level. A server can exist without tools.
 
-### 3.5 `mcp_tool` — Werkzeug eines Servers
+### 3.5 `mcp_tool` — Tool of a Server
 
-**Quellen**: J `mcp/McpTool.java:21–35`; M `schema/V003__Add_MCP.sql:7–14`.
+**Sources**: J `mcp/McpTool.java:21–35`; M `schema/V003__Add_MCP.sql:7–14`.
 
-| Spalte | SQL-Typ | NULL erlaubt | SQL-Default | Datenbankregel | Java-Attribut / Typ |
+| Column | SQL Type | NULL allowed | SQL Default | Database Rule | Java Attribute / Type |
 | --- | --- | --- | --- | --- | --- |
-| `id` | `UUID` | Nein | `gen_random_uuid()` | Primärschlüssel | `id: UUID`, geerbt |
-| `mcp_server_id` | `UUID` | Nein | Keiner | FK auf `mcp_server.id`, Löschkaskade | `mcpServer: McpServer` |
-| `name` | `VARCHAR(100)` | Nein | Keiner | Höchstens 100 Zeichen, nicht eindeutig | `name: String` |
-| `description` | `TEXT` | Ja | Keiner | Optionale Beschreibung | `description: String` |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary key | `id: UUID`, inherited |
+| `mcp_server_id` | `UUID` | No | None | FK to `mcp_server.id`, delete cascade | `mcpServer: McpServer` |
+| `name` | `VARCHAR(100)` | No | None | At most 100 characters, not unique | `name: String` |
+| `description` | `TEXT` | Yes | None | Optional description | `description: String` |
 
-Die Serverreferenz ist `@ManyToOne(fetch = LAZY, optional = false)` mit nicht-null Join-Spalte. Werkzeugnamen sind auch innerhalb desselben Servers nicht eindeutig. Eine fehlende und eine leere Beschreibung sind beide zulässig, aber verschiedene Werte. Ein Werkzeug kann ohne Konfigurationszuordnung existieren.
+The server reference is `@ManyToOne(fetch = LAZY, optional = false)` with a non-null join column. Tool names are not unique even within the same server. A missing and an empty description are both permitted, but different values. A tool can exist without a configuration assignment.
 
-### 3.6 `chatbot_tool` — Konfigurationsbezogene Werkzeugzuordnung
+### 3.6 `chatbot_tool` — Configuration-Related Tool Assignment
 
-**Quellen**: J `mcp/ChatbotTool.java:18–42`; M `schema/V003__Add_MCP.sql:16–25`.
+**Sources**: J `mcp/ChatbotTool.java:18–42`; M `schema/V003__Add_MCP.sql:16–25`.
 
-| Spalte | SQL-Typ | NULL erlaubt | SQL-Default | Datenbankregel | Java-Attribut / Typ |
+| Column | SQL Type | NULL allowed | SQL Default | Database Rule | Java Attribute / Type |
 | --- | --- | --- | --- | --- | --- |
-| `id` | `UUID` | Nein | `gen_random_uuid()` | Primärschlüssel | `id: UUID`, geerbt |
-| `chatbot_config_id` | `UUID` | Nein | Keiner | FK auf `chatbot_config.id`, Löschkaskade; Teil des Unique-Paares | `chatbotConfig: ChatbotConfig` |
-| `mcp_tool_id` | `UUID` | Nein | Keiner | FK auf `mcp_tool.id`, Löschkaskade; Teil des Unique-Paares | `mcpTool: McpTool` |
-| `is_active` | `BOOLEAN` | Nein | `TRUE` | Aktivstatus, nicht Teil des Unique-Paares | `isActive: boolean`, initial `true` |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary key | `id: UUID`, inherited |
+| `chatbot_config_id` | `UUID` | No | None | FK to `chatbot_config.id`, delete cascade; part of the unique pair | `chatbotConfig: ChatbotConfig` |
+| `mcp_tool_id` | `UUID` | No | None | FK to `mcp_tool.id`, delete cascade; part of the unique pair | `mcpTool: McpTool` |
+| `is_active` | `BOOLEAN` | No | `TRUE` | Active flag, not part of the unique pair | `isActive: boolean`, initially `true` |
 
-Beide Objektverweise sind `@ManyToOne(fetch = LAZY, optional = false)` mit nicht-null Join-Spalte. Die Entität benennt ihre Tabelle mit `@Table` ausdrücklich und definiert denselben Unique-Constraint wie die Migration: `uq_chatbot_config_tool(chatbot_config_id, mcp_tool_id)`.
+Both object references are `@ManyToOne(fetch = LAZY, optional = false)` with non-null join columns. The entity names its table explicitly with `@Table` and defines the same unique constraint as the migration: `uq_chatbot_config_tool(chatbot_config_id, mcp_tool_id)`.
 
-Die Zuordnung besitzt eine eigene Kennung; das Paar ist ein zusätzlicher eindeutiger Schlüssel, nicht ihr Primärschlüssel. Ein anderer Aktivstatus erlaubt keinen zweiten Datensatz desselben Paares.
+The assignment has its own identifier; the pair is an additional unique key, not its primary key. A different active flag does not allow a second record of the same pair.
 
-### 3.7 `the_entity` — Isolierte Beispielentität
+### 3.7 `the_entity` — Isolated Example Entity
 
-**Quellen**: J `theentity/TheEntity.java:24–33`; M `schema/V001__TheEntity_schema.sql:1–5`.
+**Sources**: J `theentity/TheEntity.java:24–33`; M `schema/V001__TheEntity_schema.sql:1–5`.
 
-| Spalte | SQL-Typ | NULL erlaubt | SQL-Default | Datenbankregel | Java-Attribut / Typ |
+| Column | SQL Type | NULL allowed | SQL Default | Database Rule | Java Attribute / Type |
 | --- | --- | --- | --- | --- | --- |
-| `text_attribute` | `VARCHAR(8)` | Nein | Keiner | Höchstens 8 Zeichen, keine SQL-Mindestlänge | `textAttribute: String` |
-| `id` | `UUID` | Nein | Keiner | Primärschlüssel | `id: UUID`, geerbt |
+| `text_attribute` | `VARCHAR(8)` | No | None | At most 8 characters, no SQL minimum length | `textAttribute: String` |
+| `id` | `UUID` | No | None | Primary key | `id: UUID`, inherited |
 
-Die Spaltenreihenfolge entspricht V001. Entität und Request-DTO verwenden zusätzlich `@NotNull` und `@Size(min = 2, max = 8)`; der Controller prüft Eingaben beim Erstellen und Ändern mit `@Valid`. SQL allein erlaubt dagegen auch einen leeren Text oder einen Text unter zwei Zeichen. Reine Leerzeichen werden innerhalb der jeweiligen Längengrenzen nicht ausgeschlossen.
+The column order corresponds to V001. The entity and the request DTO additionally use `@NotNull` and `@Size(min = 2, max = 8)`; the controller validates input on creation and modification with `@Valid`. SQL alone, by contrast, also permits an empty text or a text shorter than two characters. Whitespace-only texts are not excluded within the respective length limits.
 
-Es gibt keine Beziehungen zur Kerndomäne. Die SQL-Generierung einer Kennung per Default fehlt hier; das geerbte Java-Mapping generiert Kennungen bei regulärer Anlage.
+There are no relationships to the core domain. The SQL generation of an identifier by default is missing here; the inherited Java mapping generates identifiers on regular creation.
 
-## 4. Schlüssel, Beziehungen und ER-Diagramm
+## 4. Keys, Relationships, and ER Diagram
 
-### 4.1 Primär- und zusätzliche Eindeutigkeitsschlüssel
+### 4.1 Primary and Additional Uniqueness Keys
 
-| Tabelle | Primärschlüssel | Zusätzlicher Unique-Constraint |
+| Table | Primary Key | Additional Unique Constraint |
 | --- | --- | --- |
-| `chatbot` | `id` | Keiner |
-| `model` | `id` | `UNIQUE(model_name)`; kein expliziter Constraint-Name vorgegeben |
-| `chatbot_config` | `id` | Keiner, insbesondere nicht `(chatbot_id, version)` |
-| `mcp_server` | `id` | Keiner |
-| `mcp_tool` | `id` | Keiner, insbesondere nicht `(mcp_server_id, name)` |
+| `chatbot` | `id` | None |
+| `model` | `id` | `UNIQUE(model_name)`; no explicit constraint name prescribed |
+| `chatbot_config` | `id` | None, in particular not `(chatbot_id, version)` |
+| `mcp_server` | `id` | None |
+| `mcp_tool` | `id` | None, in particular not `(mcp_server_id, name)` |
 | `chatbot_tool` | `id` | `uq_chatbot_config_tool(chatbot_config_id, mcp_tool_id)` |
-| `the_entity` | `id` | Keiner |
+| `the_entity` | `id` | None |
 
-Die Migrationen geben keine eigenen Namen für die Primärschlüssel vor. Automatisch vergebene Constraint-Namen sind hier kein aus einer Instanz überprüfter Befund.
+The migrations do not prescribe their own names for the primary keys. Automatically assigned constraint names are not a finding verified against an instance here.
 
-### 4.2 Fremdschlüssel und Kardinalitäten
+### 4.2 Foreign Keys and Cardinalities
 
-Alle fünf Referenzen sind verpflichtend. Je abhängiger Zeile wird genau ein bestehendes Ziel referenziert; jedes Ziel kann 0..n abhängige Zeilen haben. SQL definiert keine explizite Update-Aktion oder Deferrability. PostgreSQL-Standard ist `ON UPDATE NO ACTION` und `NOT DEFERRABLE`.
+All five references are mandatory. Per dependent row, exactly one existing target is referenced; each target can have 0..n dependent rows. SQL defines no explicit update action or deferrability. The PostgreSQL default is `ON UPDATE NO ACTION` and `NOT DEFERRABLE`.
 
-| Constraint | Abhängige Spalte | Ziel | Ziel → abhängige Objekte | ON DELETE | ON UPDATE |
+| Constraint | Dependent Column | Target | Target → Dependent Objects | ON DELETE | ON UPDATE |
 | --- | --- | --- | --- | --- | --- |
-| `fk_chatbot_config_chatbot` | `chatbot_config.chatbot_id` | `chatbot.id` | 1 → 0..n Konfigurationen | `NO ACTION` (Standard) | `NO ACTION` (Standard) |
-| `fk_chatbot_config_model` | `chatbot_config.model_id` | `model.id` | 1 → 0..n Konfigurationen | `NO ACTION` (Standard) | `NO ACTION` (Standard) |
-| `fk_mcp_tool_server` | `mcp_tool.mcp_server_id` | `mcp_server.id` | 1 → 0..n Werkzeuge | `CASCADE` | `NO ACTION` (Standard) |
-| `fk_chatbot_tool_config` | `chatbot_tool.chatbot_config_id` | `chatbot_config.id` | 1 → 0..n Zuordnungen | `CASCADE` | `NO ACTION` (Standard) |
-| `fk_chatbot_tool_tool` | `chatbot_tool.mcp_tool_id` | `mcp_tool.id` | 1 → 0..n Zuordnungen | `CASCADE` | `NO ACTION` (Standard) |
+| `fk_chatbot_config_chatbot` | `chatbot_config.chatbot_id` | `chatbot.id` | 1 → 0..n configurations | `NO ACTION` (default) | `NO ACTION` (default) |
+| `fk_chatbot_config_model` | `chatbot_config.model_id` | `model.id` | 1 → 0..n configurations | `NO ACTION` (default) | `NO ACTION` (default) |
+| `fk_mcp_tool_server` | `mcp_tool.mcp_server_id` | `mcp_server.id` | 1 → 0..n tools | `CASCADE` | `NO ACTION` (default) |
+| `fk_chatbot_tool_config` | `chatbot_tool.chatbot_config_id` | `chatbot_config.id` | 1 → 0..n assignments | `CASCADE` | `NO ACTION` (default) |
+| `fk_chatbot_tool_tool` | `chatbot_tool.mcp_tool_id` | `mcp_tool.id` | 1 → 0..n assignments | `CASCADE` | `NO ACTION` (default) |
 
-Zwischen Konfiguration und Werkzeug besteht eine auf beiden Seiten optionale n:m-Beziehung über `chatbot_tool`. Ein direkter Werkzeugbezug zu `chatbot` ist nicht vorhanden.
+Between configuration and tool there is an n:m relationship that is optional on both sides via `chatbot_tool`. A direct tool reference from `chatbot` does not exist.
 
-### 4.3 ER-Diagramm
+### 4.3 ER Diagram
 
 ```mermaid
 erDiagram
-    chatbot ||--o{ chatbot_config : besitzt
-    model ||--o{ chatbot_config : konfiguriert
-    mcp_server ||--o{ mcp_tool : bietet
-    chatbot_config ||--o{ chatbot_tool : umfasst
-    mcp_tool ||--o{ chatbot_tool : zugeordnet
+    chatbot ||--o{ chatbot_config : owns
+    model ||--o{ chatbot_config : configures
+    mcp_server ||--o{ mcp_tool : provides
+    chatbot_config ||--o{ chatbot_tool : includes
+    mcp_tool ||--o{ chatbot_tool : assigned
 
     chatbot {
         UUID id PK
@@ -206,78 +206,88 @@ erDiagram
     }
 ```
 
-Die Typnamen im Diagramm sind verkürzt; exakte SQL-Typen, Nullbarkeit, Defaults, Löschaktionen und der zusammengesetzte Unique-Constraint stehen in den Tabellen.
+The type names in the diagram are abbreviated; exact SQL types, nullability, defaults, delete actions, and the composite unique constraint are given in the tables.
 
-## 5. Löschfolgen und Zustandsänderungen
+## 5. Delete Consequences and State Changes
 
-| Änderung | Datenbankfolge | Objektseitige Ergänzung |
+| Change | Database Consequence | Object-Side Supplement |
 | --- | --- | --- |
-| Chatbot oder Modell mit bestehenden Konfigurationsverweisen löschen | Löschung wird durch den jeweiligen FK verhindert. Ohne Verweise besteht dieses Löschhindernis nicht. | Keine Löschkaskade vom Chatbot oder Modell zu Konfigurationen definiert. |
-| Konfiguration löschen | Ihre Werkzeugzuordnungen entfallen; Chatbot, Modell, Werkzeuge und Server bleiben bestehen. | Konfigurationssammlung besitzt `cascade = ALL`. |
-| Werkzeug löschen | Alle darauf bezogenen Zuordnungen entfallen; Konfigurationen und Server bleiben bestehen. | Die beschriebene Löschkaskade stammt aus SQL. |
-| Server löschen | Seine Werkzeuge und deren Zuordnungen entfallen; Konfigurationen und Chatbots bleiben bestehen. | Keine entsprechende Werkzeug-Sammlung auf `McpServer`; die Wirkung stammt aus SQL. |
-| Zuordnung löschen | Nur die Zuordnung entfällt; Werkzeug und Konfiguration bleiben bestehen. | Entfernen aus der verwalteten Konfigurationssammlung löst bei Synchronisierung über `orphanRemoval = true` ebenfalls das Entfernen aus. |
-| Beispieldatensatz löschen | Nur der Beispieldatensatz entfällt. | Keine Domänenbeziehungen vorhanden. |
+| Delete a chatbot or model with existing configuration references | Deletion is prevented by the respective FK. Without references, this deletion barrier does not exist. | No delete cascade from chatbot or model to configurations is defined. |
+| Delete a configuration | Its tool assignments cease to exist; chatbot, model, tools, and servers remain. | The configuration collection has `cascade = ALL`. |
+| Delete a tool | All assignments referring to it cease to exist; configurations and servers remain. | The described delete cascade originates from SQL. |
+| Delete a server | Its tools and their assignments cease to exist; configurations and chatbots remain. | No corresponding tool collection on `McpServer`; the effect originates from SQL. |
+| Delete an assignment | Only the assignment ceases to exist; tool and configuration remain. | Removing from the managed configuration collection also triggers removal upon synchronization via `orphanRemoval = true`. |
+| Delete an example record | Only the example record ceases to exist. | No domain relationships exist. |
 
-**Aktivstatus**: `chatbot_tool.is_active` kann zwischen `TRUE` und `FALSE` wechseln. Deaktivieren entfernt keinen Datensatz und lässt die Paar-Eindeutigkeit bestehen. Weitere Statuswerte oder fachliche Statusübergänge sind nicht definiert.
+**Active flag**: `chatbot_tool.is_active` can switch between `TRUE` and `FALSE`. Deactivating removes no record and leaves the pair uniqueness in place. Further status values or domain-level status transitions are not defined.
 
-**Konfiguration**: Prompt, Temperatur, Version und Referenzen besitzen keine allgemeine SQL-Unveränderlichkeitsregel. Gleiche Versionsbezeichnungen können mehrfach vorkommen; ein Auswahlverfahren für eine aktuelle Konfiguration ist nicht definiert. Der Erstellungszeitpunkt ist nur im regulären Objekt-Update vor Änderung geschützt.
+**Configuration**: Prompt, temperature, version, and references have no general SQL immutability rule. Identical version labels can occur multiple times; a selection procedure for a current configuration is not defined. The creation timestamp is protected only against regular object updates.
 
-**Referenzen**: Neuzuordnungen müssen auf bestehende Ziele zeigen und bei Werkzeugzuordnungen weiterhin das Unique-Paar einhalten. `ON UPDATE NO ACTION` betrifft Änderungen referenzierter Schlüssel; es verbietet keine gültige Neuzuordnung einer Fremdschlüsselspalte.
+**References**: Reassignments must point to existing targets and, for tool assignments, continue to observe the unique pair. `ON UPDATE NO ACTION` concerns changes to referenced keys; it does not prohibit a valid reassignment of a foreign key column.
 
-Diese Regeln beschreiben zulässige Datenzustände. Für die sechs Kernentitäten sind keine eigenen Verwaltungs-Repositories, Services oder Controller belegt; eine tatsächliche Werkzeugausführung folgt nicht aus dem Aktivstatus.
+These rules describe permitted data states. For the six core entities, no dedicated management repositories, services, or controllers are attested; actual tool execution does not follow from the active flag.
 
-## 6. Indizes und weitere Schemaobjekte
+## 6. Indexes and Further Schema Objects
 
-- Keine Schema-Migration enthält ein explizites `CREATE INDEX`.
-- PostgreSQL erzeugt automatisch eindeutige Indizes für sieben PK und zwei zusätzliche Unique-Constraints. Damit sind neun solche Indizes für ein aus diesen Migrationen neu aufgebautes Anwendungsschema ableitbar; ein Live-Indexinventar wurde nicht ermittelt.
-- Fremdschlüssel erzeugen keine automatischen zusätzlichen Indizes auf den referenzierenden Spalten. Der Unique-Index auf `(chatbot_config_id, mcp_tool_id)` besitzt `chatbot_config_id` als führende Spalte; das ist kein separat definierter Index auf `mcp_tool_id`.
-- Die Migrationen definieren keine zusätzlichen `CHECK`-Constraints, Views, Sequenzen, Trigger, fachlichen Funktionen oder expliziten Erweiterungsinstallationen. `gen_random_uuid()` und `CURRENT_TIMESTAMP` sind verwendete PostgreSQL-Funktion beziehungsweise Zeitausdruck.
+- No schema migration contains an explicit `CREATE INDEX`.
+- PostgreSQL automatically creates unique indexes for the seven PKs and the two additional unique constraints. Thus, nine such indexes are derivable for an application schema newly built from these migrations; a live index inventory was not determined.
+- Foreign keys do not automatically create additional indexes on the referencing columns. The unique index on `(chatbot_config_id, mcp_tool_id)` has `chatbot_config_id` as its leading column; that is not a separately defined index on `mcp_tool_id`.
+- The migrations define no additional `CHECK` constraints, views, sequences, triggers, domain functions, or explicit extension installations. `gen_random_uuid()` and `CURRENT_TIMESTAMP` are a used PostgreSQL function and time expression, respectively.
 
-## 7. Validierungsebenen und Bestandsgrenzen
+## 7. Validation Layers and As-Built Boundaries
 
-| Regel | SQL-Absicherung | JPA / Bean Validation / Eingabe | Abgrenzung |
+| Rule | SQL Enforcement | JPA / Bean Validation / Input | Delimitation |
 | --- | --- | --- | --- |
-| Identität | UUID-PK überall; SQL-UUID-Default nur auf sechs Kerntabellen | Geerbte UUID-Generierung überall | Direkte SQL-Anlage eines Beispieldatensatzes benötigt eine Kennung. |
-| Pflicht und Textlänge | `NOT NULL`, `VARCHAR`-Grenzen; Beschreibung nullable | Entsprechende Spalten-/Join-Metadaten | Metadaten allein sind keine frühe Eingabevalidierung. |
-| Leere Texte / Namen | Keine Mindestlänge oder Nicht-leer-Regel für Kerntexte | Keine zusätzlichen Bean-Validation-Regeln der Kernentitäten | Leere Texte und reine Leerzeichen sind nicht ausgeschlossen. |
-| Eindeutigkeit | Modellname und Konfiguration/Werkzeug-Paar | Entsprechende Unique-Metadaten | Keine weitere Namens-, Adress- oder Versionseindeutigkeit. |
-| Serveradresse | Pflichttext bis 255 Zeichen | Längen-/Nullbarkeitsmetadaten | Keine Format-/Erreichbarkeitsprüfung. |
-| Temperatur | Pflichtwert, kein Default oder Bereichs-`CHECK` | `Double` mit nicht-null Spaltenmetadaten | Kein Bereich wie 0–2 und keine fachliche Sonderwertregel. |
-| Version | Pflichttext bis 20 Zeichen | `String`, kein `@Version` | Kein Format, keine Versionsfolge oder Aktuell-Auswahl. |
-| Erstellungszeitpunkt | Pflichtzeitpunkt mit Insert-Default | `@CreationTimestamp`, `updatable = false` | SQL selbst erzwingt keine Unveränderlichkeit. |
-| Aktivstatus | `BOOLEAN NOT NULL DEFAULT TRUE` | `boolean`, initial `true` | Status nur je Zuordnung; Default ersetzt kein explizites SQL-`NULL`. |
-| Beispieltext | Pflichttext bis 8 Zeichen | Zusätzlich `@Size(min = 2, max = 8)`, `@NotNull`, Eingaben mit `@Valid` | Die Mindestlänge 2 ist kein SQL-Constraint. |
-| Zuordnung aus Sammlung entfernen | Keine Collection-Semantik in SQL | `orphanRemoval = true` | Setzt Verarbeitung des verwalteten Objektmodells voraus. |
+| Identity | UUID PK everywhere; SQL UUID default only on the six core tables | Inherited UUID generation everywhere | Direct SQL creation of an example record requires an identifier. |
+| Mandatory fields and text length | `NOT NULL`, `VARCHAR` limits; description nullable | Corresponding column/join metadata | Metadata alone is not early input validation. |
+| Empty texts / names | No minimum length or non-empty rule for core texts | No additional Bean Validation rules of the core entities | Empty texts and whitespace-only texts are not excluded. |
+| Uniqueness | Model name and configuration/tool pair | Corresponding unique metadata | No further name, address, or version uniqueness. |
+| Server address | Mandatory text up to 255 characters | Length/nullability metadata | No format/reachability check. |
+| Temperature | Mandatory value, no default or range `CHECK` | `Double` with non-null column metadata | No range such as 0–2 and no domain-level special-value rule. |
+| Version | Mandatory text up to 20 characters | `String`, no `@Version` | No format, no version sequence, no current selection. |
+| Creation timestamp | Mandatory timestamp with insert default | `@CreationTimestamp`, `updatable = false` | SQL itself does not enforce immutability. |
+| Active flag | `BOOLEAN NOT NULL DEFAULT TRUE` | `boolean`, initially `true` | Status only per assignment; the default does not replace an explicit SQL `NULL`. |
+| Example text | Mandatory text up to 8 characters | Additionally `@Size(min = 2, max = 8)`, `@NotNull`, input with `@Valid` | The minimum length 2 is not an SQL constraint. |
+| Remove assignment from collection | No collection semantics in SQL | `orphanRemoval = true` | Presumes processing of the managed object model. |
 
-Prompt und Werkzeugbeschreibung besitzen keine fachlich festgelegte Maximallänge oder Inhaltsprüfung. Die Beispieltextvalidierung zählt Java-Zeichenkettenlänge; SQL-Längenprüfungen können bei Unicode-Sonderzeichen anders ausfallen. Eine einheitliche Zählung sichtbarer Zeichen oder Namensnormalisierung ist aus diesen Regeln nicht ableitbar.
+Prompt and tool description have no domain-level maximum length or content check. The example text validation counts Java string length; SQL length checks may differ for special Unicode characters. A uniform counting of visible characters or name normalization is not derivable from these rules.
 
-## 8. Migrationsfolge und Konfiguration
+## 8. Migration Sequence and Configuration
 
-| Datei relativ zu M | Art | Wirkung |
+| File Relative to M | Kind | Effect |
 | --- | --- | --- |
-| `schema/V001__TheEntity_schema.sql` | Versioniert, V001 | `the_entity`: 2 Spalten, 1 PK. |
-| `schema/V002__Project_Init.sql` | Versioniert, V002 | `model`, `chatbot`, `chatbot_config`: zusammen 11 Spalten, 3 PK, 1 Unique-Constraint, 2 FK ohne Löschkaskade. |
-| `schema/V003__Add_MCP.sql` | Versioniert, V003 | `mcp_server`, `mcp_tool`, `chatbot_tool`: zusammen 11 Spalten, 3 PK, 1 Unique-Constraint, 3 FK mit Löschkaskade. |
-| `testdata/R__Testdata.sql` | Wiederholbar | Leert `the_entity` und setzt fünf Texte mit festen UUIDs: Alpha, Bravo, Charlie, Delta, Echo. Keine Schemaänderung oder Kernstammdaten. |
+| `schema/V001__TheEntity_schema.sql` | Versioned, V001 | `the_entity`: 2 columns, 1 PK. |
+| `schema/V002__Project_Init.sql` | Versioned, V002 | `model`, `chatbot`, `chatbot_config`: together 11 columns, 3 PKs, 1 unique constraint, 2 FKs without delete cascade. |
+| `schema/V003__Add_MCP.sql` | Versioned, V003 | `mcp_server`, `mcp_tool`, `chatbot_tool`: together 11 columns, 3 PKs, 1 unique constraint, 3 FKs with delete cascade. |
+| `testdata/R__Testdata.sql` | Repeatable | Empties `the_entity` and inserts five texts with fixed UUIDs: Alpha, Bravo, Charlie, Delta, Echo. No schema change or core master data. |
 
-`admin-backend/src/main/resources/application.yml:12–19` konfiguriert `spring.jpa.hibernate.ddl-auto: validate`, `open-in-view: false` und nur `classpath:db/migration/schema`. `application-local.yml:16–19` ergänzt `classpath:db/migration/testdata`; die Flyway-Maven-Konfiguration in `admin-backend/pom.xml:75–79` enthält ebenfalls beide Orte.
+`admin-backend/src/main/resources/application.yml:12–19` configures `spring.jpa.hibernate.ddl-auto: validate`, `open-in-view: false`, and only `classpath:db/migration/schema`. `application-local.yml:16–19` adds `classpath:db/migration/testdata`; the Flyway Maven configuration in `admin-backend/pom.xml:75–79` likewise includes both locations.
 
-Wird die wiederholbare Migration ausgeführt, ersetzt sie vorhandene Beispieldaten. Das ist ein konfigurationsabhängiger Testdatenvorgang, kein fachlicher Löschprozess. Wiederholbar bedeutet nicht unabhängig von Flyways Änderungsprüfung bei jedem Start erneut ausgeführt.
+If the repeatable migration is executed, it replaces existing example data. That is a configuration-dependent test data operation, not a domain-level deletion process. Repeatable does not mean re-executed independently of Flyway's change check at every startup.
 
-Lokal definiert `stack/docker-compose.yml:14–21` PostgreSQL 18.4 (Alpine), Datenbank `postgres` und Port 5432. Damit ist keine Version einer produktiven Instanz festgestellt.
+Locally, `stack/docker-compose.yml:14–21` defines PostgreSQL 18.4 (Alpine), database `postgres`, and port 5432. No version of a production instance was thereby determined.
 
-## 9. Zuordnung zur fachlichen Spezifikation
+## 9. Application Behavior beyond the Schema
 
-| Anforderungen | Beleg im Datenmodell |
+The six core entities have no dedicated repositories, services, or controllers in the examined source state; management operability, domain-level search/selection rules, tool execution, and permission assignment cannot be attested from this. The only evidenced application behavior concerns the isolated example entity:
+
+- J `theentity/TheEntityRepository.java:8–9` is the only repository in the examined Java source state. It combines `CrudRepository<TheEntity, UUID>` and `PagingAndSortingRepository<TheEntity, UUID>` without custom search methods.
+- J `theentity/TheEntityService.java:23–59` attests single/paginated reading, creation, modification of the text while retaining the identifier, and deletion. Reading/modification use a prior lookup with `NotFoundException`; deletion calls `deleteById` directly. The same explicit not-found rule on deletion is not defined.
+- J `theentity/TheEntityController.java:54–60` uses page 0 and size 10 as defaults; the service uses `PageRequest.of`, which requires a non-negative page number and a positive size. A fixed result order and a domain-level maximum size are not defined.
+- J `theentity/TheEntityController.java:69,81` validates requests on create/update with `@Valid`. J `theentity/dto/TheEntityRequestDTO.java:6` contains the text mandatory-field and length rules.
+- J `security/Authorities.java:10–15` permits `reader` or `writer` to read; creating, modifying, and deleting require `writer`. The service methods use these active constants. Commented-out permissions-based alternatives are not as-built rules.
+
+## 10. Mapping to the Domain Specification
+
+| Requirements | Evidence in the Data Model |
 | --- | --- |
-| FR-001–002 | Kennungen, Chatbot-/Modellname, Modellnamen-Unique. |
-| FR-003–005 | Konfigurationsspalten, Pflichtreferenzen, Zeitstempelverhalten und freie Versionsbezeichnung. |
-| FR-006–007 | Server-/Werkzeugattribute und verpflichtender Serverbezug. |
-| FR-008–009 | Aktivstatus, eigene Zuordnungsidentität und Unique-Paar. |
-| FR-010–012 | Fünf FK mit Löschaktionen, Pflichtbezug und objektseitiges Orphan Removal. |
-| FR-013–014 | Grenzen der Kernvalidierung und zusätzlich anwendungsseitige Beispiel-Mindestlänge. |
-| FR-015–016 | Rollen, Beispielverwaltung, Nichtgefunden-Verhalten und Pagination sind Anwendungsfunktionen, keine Schemaobjekte; ihre Belege stehen in [source-analysis.md](source-analysis.md). |
-| FR-017 | Vollständigkeitsinventar mit 7 Tabellen, 24 Spalten, 5 Beziehungen und allen belegten Schlüssel-/Validierungs-/Löschregeln. |
+| FR-001–002 | Identifiers, chatbot/model name, model name uniqueness. |
+| FR-003–005 | Configuration columns, mandatory references, timestamp behavior, and free version label. |
+| FR-006–007 | Server/tool attributes and the mandatory server reference. |
+| FR-008–009 | Active flag, own assignment identity, and unique pair. |
+| FR-010–012 | Five FKs with delete actions, mandatory reference, and object-side orphan removal. |
+| FR-013–014 | Limits of core validation and the additionally application-side example minimum length. |
+| FR-015–016 | Roles, example management, not-found behavior, and pagination are application functions, not schema objects; their evidence is in section 9 above. |
+| FR-017 | Completeness inventory with 7 tables, 24 columns, 5 relationships, and all attested key/validation/delete rules. |
 
-Gespräche, Nachrichten, Nutzendenprofile, Wissensbestände, Mandanten, Abrechnung und Veröffentlichungs-/Freigabestatus sind in den untersuchten Migrationen nicht als eigene fachliche Datenobjekte definiert. Die bestehende Paketabweichung zur Projektverfassung ist im [Plan](plan.md) eingeordnet.
+Conversations, messages, user profiles, knowledge bases, tenants, billing, and publication/release status are not defined as dedicated domain data objects in the migrations examined. The existing package deviation from the project constitution is contextualized in the [Plan](plan.md).
