@@ -1,38 +1,351 @@
-# muchabo Constitution
+# MuChaBo Constitution
 
 ## Core Principles
 
-### I. RefArch System Topology (Admin & Public Split)
-- The application strictly follows the [it@M Reference Architecture (RefArch)](https://muenchen.de) and separates internal administration from public citizen-facing interfaces:
-  - **Admin Interface (`admin-frontend/`):** Internal SPA for staff/administrators behind Keycloak SSO.
-  - **Public Interface (`webcomponent/`):** Embeddable Micro Frontend for Munich web portals (e.g. muenchen.de) using Munich PatternLab.
-  - **Backend (`admin-backend/`):** Spring Boot service serving both internal admin APIs and public endpoints.
-- All external traffic MUST route through the `refarch-gateway` (Default local port: `8083`). Direct exposure of backend services is forbidden.
+### I. Simplicity First
 
-### II. Backend Standards (Spring Boot & PostgreSQL)
-- **Framework & Runtime:** Java with **Spring Boot** (Default local port: `8086`) under base package `de.muenchen.oss.muchabo`.
-- **Admin vs. Public API Separation:** Separate administrative controllers/services from public citizen-facing controllers. Document all endpoints via OpenAPI.
-- **Persistence & Migrations:** Use **PostgreSQL** (`5432`) as the primary database. All schema changes MUST use versioned **Flyway** SQL migrations (`mvn flyway:migrate`).
+Simplicity limits **how much machinery** a feature uses, never **how well** it meets its
+requirements. Quality obligations (correct behavior, validation at boundaries, error handling,
+security, data protection, accessibility, tests, and documentation) are never reduced for
+simplicity's sake, and quality is never a reason to add machinery such as layers,
+abstractions, wrappers, options, duplicated artifacts, or scaffolding.
 
-### III. Frontend Standards (Admin SPA vs. Public Web Component)
-- **Shared Core:** Both UIs use **TypeScript**, **Vue.js** (strictly Composition API with `<script setup lang="ts">`), **Vite**, and **VueI18n** (ISO-639-1 JSON files in `locales/`, German `de` mandatory default).
-- **Admin Frontend (`admin-frontend/`, Port `8081`):** MUST use **Vuetify** (via Vuetify Vite Plugin auto-imports; no manual Vuetify component imports in `<script>`). Do NOT use PatternLab components here.
-- **Public Web Component (`webcomponent/`, Port `8082`):** MUST use **`@muenchen/muc-patternlab-vue`** to match the official City of Munich corporate design. Do NOT use Vuetify in the public web component.
+- Simplicity MUST have the highest priority in implementation choices across all four parts,
+  while satisfying every applicable requirement and principle. Every feature MUST use the
+  least code that meets its specification; the smallest change that works is the right change.
+- **Traceability:** every new module, class, public function, setting, dependency, and file
+  MUST trace to a requirement of the current specification. Anything that does not trace
+  MUST be removed.
+- **Built-in first:** implementations MUST use built-in features of the chosen frameworks and
+  existing libraries before adding custom code. The MuChaBo backend MUST prefer Pydantic AI
+  agent specs, capabilities, toolsets, deferred tools for approvals, the AG-UI adapter, MCP
+  toolsets, and instrumentation; the admin backend MUST prefer Spring Boot facilities.
+  Frontends MUST prefer existing UI components and the AG-UI client library. When a plan adds
+  custom code, it MUST name the built-in it evaluated and why that built-in does not suffice.
+- **Trust the framework:** code MUST validate at system boundaries (incoming requests,
+  external responses, bot specs, configuration) and MUST NOT re-validate, re-wrap, or
+  re-handle what the framework or an earlier boundary already guarantees.
+- **One source of truth:** contracts, schemas, fixtures, and settings MUST exist in exactly
+  one location. Other places MUST link to or generate from that location and MUST NOT copy it.
+- **Scoped applicability:** a principle's obligations apply to a feature when the feature
+  touches the surface the principle governs (for example, approval rules once a feature adds
+  tools). Within a touched surface, the full quality bar applies; untouched surfaces MUST NOT
+  receive preparatory scaffolding.
+- Code MUST NOT introduce wrapper layers around Pydantic AI or other core libraries.
+- Code MUST NOT introduce abstract base classes, interfaces, factories, or registries for a
+  single implementation. An abstraction MUST have a second real use before introduction.
+- Code MUST NOT introduce plugin systems, generic frameworks, custom state-management layers,
+  or configuration options without an explicitly requested requirement.
+- Code MUST NOT implement hypothetical future requirements (YAGNI) or add a dependency when
+  the standard library or an existing dependency already covers the need.
+- Contributors SHOULD prefer deleting redundant code over adding code, because reducing the
+  maintained surface is preferable when both changes meet the same requirement.
 
-### IV. Security & Authentication
-- **Admin Endpoints & Routes:** Protected via **Keycloak** OAuth 2.0 / OIDC (Port `8100`) and role-based access control (`@PreAuthorize`). Gateway-to-backend traffic MUST pass validated **JWTs**.
-- **Public Endpoints & Routes:** Unauthenticated endpoints for the public web component MUST reside under `/public/**` (or `refarch.security.public-patterns`) with strict input validation and rate-limiting considerations. Keep CSRF protection enabled unless explicitly whitelisted via `refarch.security.csrf-whitelisted`.
+**Rationale:** Every line is maintenance cost, and coding agents tend to overengineer. Small,
+traceable code is easier to make and keep correct, so simplicity serves quality rather than
+competing with it.
 
-### V. Automated Quality Gates & Testing
-- **Backend:** Must pass `mvn clean verify` (**Spotless**, **PMD**, **SpotBugs**, **find-sec-bugs**).
-- **Frontends (`admin-frontend/` & `webcomponent/`):** Must pass **ESLint**, **Prettier**, `vue-tsc`, and **Vitest** (`npm run test`).
-- **Supply Chain:** Maintain CycloneDX SBOM generation and zero unresolved **Trivy** vulnerabilities.
+### II. Config over Code
 
-## Local Development & Infrastructure
-- Support Spring profiles `local` (with `stack/` Docker Compose) and `no-security` (isolated local development).
+- Bot behavior MUST be defined only by the bot spec. The MuChaBo backend and frontend MUST
+  contain no bot-specific code; adding or changing a bot MUST require no code change or
+  redeployment.
+- Bot specs MUST map as directly as possible onto Pydantic AI agent specs rather than create
+  a parallel custom agent format. Platform fields MUST cover the bot's system prompt, model,
+  tools, MCP servers, knowledge sources, start suggestions, guardrails, approval requirements,
+  and handover rules as needed by its specification.
+- The admin backend MUST validate bot specs against the same schema used by the MuChaBo
+  backend. Specs MUST be versioned, and the runtime MUST load a spec through the admin
+  backend API at request time and identify the version used for execution.
+- Invalid specs MUST fail fast with a clear validation error before bot execution.
+
+**Rationale:** One shared runtime can serve many bots without duplicated implementations.
+
+### III. Stateless, Scalable Runtime
+
+- The MuChaBo backend MUST keep no conversation state in process memory between requests.
+  Conversation history and pending approvals MUST be persisted externally.
+- Any runtime instance MUST be able to continue any conversation, including a pending approval,
+  from persisted state and authorised per-request context.
+- I/O MUST be asynchronous throughout the MuChaBo runtime; request execution MUST NOT depend
+  on blocking network or persistence operations.
+
+**Rationale:** External state and asynchronous I/O enable horizontal scaling and reliable resumption.
+
+### IV. Security and Data Protection by Design
+
+- Public citizen bots and internal employee bots MUST have distinct trust levels. Public users
+  MUST be treated as untrusted, including anonymous or lightly authenticated users; internal
+  users MUST be authenticated and subject to role-based content and tool access.
+- Both backends MUST authenticate every request according to its access policy, including
+  service-to-service calls. Public anonymous access MUST use an explicit anonymous access
+  context and MUST NOT grant employee privileges. The admin frontend and backend MUST be
+  restricted to authorised administrators.
+- Per-request user identity, tenant, and roles MUST be passed through Pydantic AI dependencies
+  into tools, retrieval, and MCP calls. Each access MUST enforce least privilege; internal
+  content access MUST be governed by LDAP/IdP authorisation. A bot spec MUST NOT elevate the
+  caller's permissions.
+- User input, retrieved content, and tool output MUST be treated as untrusted and MUST NOT
+  override authorisation or approval controls through prompt injection.
+- Secrets MUST NOT appear in code, bot specs, or frontend bundles. Credentials MUST be supplied
+  through runtime configuration and MUST NOT be committed or embedded in build artifacts.
+- All parts MUST comply with GDPR through data minimisation and defined retention periods.
+  Logs and Langfuse traces MUST contain no unmasked personal data; masking MUST occur before
+  telemetry is emitted.
+- Admin endpoints and routes MUST be protected by Keycloak OAuth 2.0 / OIDC and role-based
+  access control. The Spring Boot admin backend MUST enforce role-based access using
+  `@PreAuthorize`. Gateway-to-backend traffic MUST pass validated JWTs for authenticated
+  requests; explicitly permitted anonymous requests MUST retain the anonymous access context
+  required above.
+- Unauthenticated public endpoints for the chat web component MUST reside under `/public/**`
+  (or `refarch.security.public-patterns` where applicable), with strict input validation and
+  rate-limiting considerations. These endpoints MUST use the explicit anonymous access context
+  required above and MUST NOT grant employee privileges.
+- CSRF protection MUST remain enabled unless explicitly whitelisted; the Spring Boot RefArch
+  stack MUST use `refarch.security.csrf-whitelisted` for such exceptions.
+
+**Rationale:** Different trust levels require enforced access boundaries and protection of personal data.
+
+### V. Human Oversight
+
+- Sensitive tool calls MUST require human approval before execution, using Pydantic AI deferred
+  tools and AG-UI interrupts that the MuChaBo frontend renders as approval requests.
+- Approval requirements MUST be defined in the bot spec; approval decisions MUST be bound to
+  the pending action and checked against the approving user's permissions before resumption.
+- Bots MUST support handing a conversation to a human agent, such as Zammad, with full context
+  within the authorised scope and data-protection rules. Specs MAY permit taking the
+  conversation back after handover.
+- Bots MUST never claim to be human. Citizens MUST be clearly told when they are talking to AI,
+  and the frontend MUST identify a transition between AI and human assistance.
+
+**Rationale:** Human control and transparent handover preserve accountability for sensitive actions.
+
+### VI. Observability
+
+- Every bot run MUST be traced end to end in Langfuse through Pydantic AI's built-in
+  OpenTelemetry instrumentation, covering LLM calls, tool calls, sub-agent calls, token usage,
+  and cost.
+- Traces MUST carry bot id, bot spec version, conversation id, and session/user id. Identifiers
+  MUST be pseudonymised or masked where necessary to meet the data-protection principle;
+  anonymous users MUST remain identifiable only within their permitted session context.
+- Both backends MUST write structured logs that support correlation and diagnosis without
+  disclosing secrets or unmasked personal data.
+
+**Rationale:** Correlated traces and logs make bot behavior, failures, and costs explainable.
+
+### VII. Clean, Maintainable Code
+
+- All parts MUST use typed code: Python MUST have full type hints, TypeScript MUST use strict
+  mode, and Java MUST avoid raw types and unchecked suppressions without a documented reason.
+- Linter, formatter, and type-checker checks MUST pass in CI with no exceptions. For the admin
+  backend these are the checks configured in its Maven build (Spotless, PMD, and SpotBugs
+  with the findsecbugs plugin).
+- Modules MUST have small, single responsibilities, and implementation MUST be explicit rather
+  than rely on hidden behavior. Code MUST follow the affected component's established naming
+  and structure.
+- Dead code and commented-out code MUST NOT be retained. Unrelated refactoring MUST NOT be
+  bundled with a feature unless its necessity is explained in the plan.
+
+**Rationale:** Consistent, typed, focused code is easier for humans and agents to change correctly.
+
+### VIII. Documentation
+
+- Every public module, class, function, and component MUST have a short docstring or the
+  language-appropriate documentation comment.
+- Comments MUST explain why a choice was made and clarify non-obvious logic; they MUST NOT
+  merely narrate what the code obviously does.
+- The bot spec format and bot spec API MUST be documented with examples, including validation,
+  versioning, and error behavior. AG-UI integration interfaces MUST also be documented.
+- Significant architecture decisions MUST be recorded as short architecture decision records
+  (ADRs). Changes to setup, configuration, public behavior, or operating procedures MUST update
+  the relevant README or `docs/` guidance in the same change.
+- All backend endpoints MUST be documented via OpenAPI.
+
+**Rationale:** Concise, current documentation makes contracts and design intent usable without guesswork.
+
+### IX. Testing and Quality Gates
+
+- Every part MUST have unit tests for core logic. MuChaBo backend unit tests MUST use Pydantic
+  AI test models instead of real LLM calls.
+- Contract tests MUST cover the bot spec API and format and the AG-UI event stream, and MUST
+  run on both sides of each interface.
+- Integration tests MUST cover persistence and MCP interactions, including conversation and
+  pending-approval resumption where affected.
+- Each bot MUST have an evaluation/regression suite that passes before a spec or model change
+  goes live. Failed evaluations MUST block activation of the change.
+- Tests MUST remain as simple as the code and assert observable behavior. Every acceptance
+  scenario and edge case in the specification MUST map to at least one test. Test frameworks
+  and fixtures MUST NOT be added beyond what the tested behavior requires, and tests MUST NOT
+  exist only to compare duplicated artifacts with each other.
+- Applicable tests and quality gates MUST pass before merge. Documentation-only changes MUST
+  be checked for consistency, references, and formatting.
+- The Spring Boot admin backend MUST pass `mvn clean verify`, including Spotless, PMD,
+  SpotBugs, and find-sec-bugs checks.
+- Both frontends (`admin-frontend/` and `muchabo-frontend/`) MUST pass ESLint,
+  Prettier, `vue-tsc`, and Vitest (`npm run test`).
+- Supply-chain checks MUST maintain CycloneDX SBOM generation and zero unresolved Trivy
+  vulnerabilities.
+
+**Rationale:** Focused tests and bot evaluations protect contracts and behavior without needless machinery.
+
+### X. Production Readiness
+
+- Directly selected core libraries, including the agent framework and tracing SDK, MUST use
+  stable major releases and MUST NOT use beta or `0.x` releases. This restriction does not
+  apply to required upstream dependencies or the established supporting stack.
+- Required upstream dependencies MAY use `0.x` or prerelease versions when required by the
+  selected libraries' declared dependency constraints. They MUST remain compatible with those
+  constraints and MUST be resolved to exact versions in committed lockfiles. This includes
+  coordinated OpenTelemetry dependencies required by the stable Langfuse SDK.
+- Direct runtime dependencies MUST have exact pinned versions and a documented upgrade path;
+  the complete resolved dependency graph MUST be recorded in committed lockfiles.
+- Dependency changes MUST update manifests and committed lockfiles together. Builds MUST use
+  locked installation paths, including frozen Python dependencies and clean npm installations
+  where configured.
+- All Python operations MUST use `uv` commands in local development, coding-agent sessions,
+  CI, and container builds. Manage interpreters with `uv python`, dependencies and environments
+  with `uv` commands, and execute Python scripts, diagnostics, tests, linters, and type checkers
+  through `uv run`. Direct interpreter paths, bare `python`/`python3`, `pip`, and standalone
+  Python-tool invocations MUST NOT bypass uv. Project execution MUST use `uv run --frozen`
+  after lockfile creation; dependency installation MUST use `uv sync --frozen`.
+- External calls MUST have explicit timeouts and bounded retries. Retry policy MUST account
+  for side effects so an approved action is not inadvertently executed twice.
+- Users MUST receive a meaningful response on failure instead of a raw error. Responses MUST
+  preserve data-protection rules, while structured logs and traces provide diagnostic detail.
+
+**Rationale:** Stable, reproducible dependencies and controlled failures make the platform operable.
+
+### XI. User Experience
+
+- The MuChaBo frontend MUST use plain, understandable language for citizens and meet
+  WCAG 2.1 AA and BITV 2.0 accessibility requirements.
+- Both frontends MUST show clear loading, error, and approval states. These states MUST be
+  accessible and distinguish pending work from actions requiring a user's decision.
+- The MuChaBo frontend MUST render streamed messages, tool calls, start suggestions, and
+  approval requests from AG-UI without bot-specific UI code.
+
+**Rationale:** Clear, accessible interaction lets citizens and employees use bots with confidence.
+
+## Technology and Operational Constraints
+
+MuChaBo is the Munich Chatbot Framework & Platform, serving many LLM-powered chatbots and agents
+for use cases such as retrieval-augmented generation over knowledge sources, guided forms, and
+FAQs. It hosts public bots for citizens and internal bots for employees.
+
+The platform MUST retain four parts with these responsibilities:
+
+1. **Admin frontend** (`admin-frontend/`): administrators create, edit, version, and test bot
+   specifications through this internal SPA for staff/administrators behind Keycloak SSO.
+2. **Admin backend** (`admin-backend/`): owns and stores bot specifications, validates them,
+   and exposes them to the MuChaBo backend through the bot spec API. This Java Spring Boot
+   service serves administrative APIs, not citizen/employee chat runtime endpoints.
+3. **MuChaBo backend** (`muchabo-backend/`): one shared core runtime loads a bot spec from
+   the admin backend at request time and executes the bot accordingly, using Python with
+   FastAPI and uv. Citizen/employee chat runtime endpoints belong to this backend.
+4. **MuChaBo frontend** (`muchabo-frontend/`): citizen and employee chat UI, implemented as
+   an embeddable micro frontend/web component for existing webpages and Munich web portals
+   (e.g. muenchen.de). It communicates with the runtime via AG-UI and renders streaming and
+   interactive events.
+
+The application MUST follow the it@M Reference Architecture (RefArch), separating internal
+administration from public citizen-facing interfaces. Both frontends MUST communicate with
+their respective backends through one `refarch-gateway`. All external traffic, including
+public AG-UI chat traffic, MUST route through this gateway; direct exposure of backend
+services is forbidden. Default local ports are `8083` for the gateway, `8081` for the admin
+frontend, `8082` for the chat frontend, `8086` for the admin backend, `8100` for Keycloak,
+and `5432` for PostgreSQL.
+
+Parts MUST communicate only through documented interfaces. The bot spec API defines the admin
+backend-to-runtime boundary; AG-UI defines the runtime-to-chat-frontend boundary. The admin
+frontend MUST access specifications through the admin backend API. Parts MUST NOT read another
+part's database or rely on its private internals. Any embedding surface such as
+`muchabo-frontend/` MUST respect the same frontend boundary rather than introduce another
+runtime or bot-specific code.
+Interface changes MUST identify affected consumers and preserve compatibility or document a
+coordinated migration path.
+
+The following technology decisions are fixed:
+
+- **Agent framework:** Pydantic AI, current stable major version v2. The MuChaBo backend MUST
+  use Pydantic AI's agent execution rather than a custom agent loop.
+- **Tracing:** Langfuse, fed by Pydantic AI's built-in OpenTelemetry instrumentation.
+- **Frontend protocol:** AG-UI, through Pydantic AI's built-in backend adapter and an existing
+  AG-UI client library on the frontend.
+- **External tools:** MCP, through Pydantic AI's built-in MCP support.
+- **Model access:** LiteLLM as the model gateway; runtime model calls MUST use that gateway.
+- **Admin backend:** Java with Spring Boot, under base package `de.muenchen.oss.muchabo`.
+- **Admin persistence:** PostgreSQL as the primary database. All admin-backend schema changes
+  MUST use versioned Flyway SQL migrations (`mvn flyway:migrate`).
+- **Frontend implementation:** Both UIs MUST use TypeScript, Vue 3, Vite, and VueI18n.
+  Vue components MUST use the Composition API with `<script setup lang="ts">`. Translations
+  MUST use ISO-639-1 JSON files in `locales/`, with German (`de`) as the mandatory default.
+- **Admin UI components:** `admin-frontend/` MUST use Vuetify through Vuetify Vite Plugin
+  auto-imports; manual Vuetify component imports in `<script>` are forbidden. PatternLab
+  components MUST NOT be used in the admin frontend.
+- **Chat web component UI:** The chat frontend SHOULD follow the official City of Munich
+  corporate design unless an embedding context requires otherwise;
+  `@muenchen/muc-patternlab-vue` MAY be used for this. Vuetify MUST NOT be used in the chat
+  frontend.
+
+The supporting stack is Python with FastAPI and uv for the MuChaBo runtime, Java with Spring
+Boot and Maven for the admin backend, Vue 3 with TypeScript and Vite for frontend surfaces, and
+container execution where Docker configuration exists. Exact versions MUST be recorded in
+manifests and lockfiles rather than duplicated here.
+Replacing a fixed technology decision MUST require a constitutional amendment.
+
+Administrative controllers/services MUST remain separate from public citizen-facing
+controllers, respecting the backend responsibilities and documented interface boundaries
+above. The Spring Boot admin backend MUST support the `local` profile with `stack/` Docker
+Compose and the `no-security` profile for isolated local development.
+
+The project MUST retain its MIT licensing and follow `CODE_OF_CONDUCT.md`. Contributions that
+introduce third-party code or dependencies MUST identify applicable licensing obligations.
+
+## Development Workflow and Review
+
+Contributors MUST follow `CONTRIBUTING.md`: describe enhancements in an issue tagged
+`enhancement`, work on a feature branch, and submit a pull request. Every specification, plan,
+and pull request MUST be checked against all applicable principles and architecture constraints.
+
+Plans MUST identify affected parts, interfaces, security context, verification, and any spec or
+model evaluation required for activation. Plans MUST list what is explicitly **not built** in the
+feature, and MUST record a simplicity review before tasks are generated: could the same
+behavior and quality be delivered with less code, fewer files, or more built-ins? Any added
+complexity, including a new abstraction, new dependency, or custom code where a framework
+built-in exists, MUST be justified in the plan's **Complexity Tracking** section or rejected.
+A justification MUST establish a present requirement and explain why existing facilities do not
+meet it; it MUST NOT waive a prohibition in this constitution.
+
+Pull requests MUST state intended behavior, affected components, verification results, and
+compatibility or migration impact. Reviewers MUST reject unsubstantiated complexity and failing
+quality gates. Required checks MUST pass before merge; bot evaluation gates MUST pass before
+spec or model activation. Governance conflicts MUST be resolved by correcting the change or
+amending this constitution, not by granting ad hoc exceptions.
 
 ## Governance
-- This constitution governs all `/speckit.specify`, `/speckit.plan`, and `/speckit.analyze` workflows.
-- Any architectural deviation requires amending this file before implementation.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-17
+This constitution MUST take precedence over all other project guidance. `CONTRIBUTING.md`,
+component READMEs, `docs/`, specifications, and plans MUST operate within its rules. Simplicity
+is the highest-priority design principle, not permission to bypass security, oversight,
+accessibility, or quality requirements.
+This constitution governs all `/speckit.specify`, `/speckit.plan`, and `/speckit.analyze`
+workflows. Any architectural deviation MUST require amending this constitution before
+implementation, following the amendment procedure below.
+
+Amendments MUST be proposed through a pull request with a rationale, affected principles,
+compatibility impact, and required migration or documentation follow-up. A project maintainer
+MUST approve an amendment before adoption. Every amendment MUST update the constitution version
+and last amended date, preserving the original ratification date once confirmed.
+
+Versions MUST use semantic versioning: MAJOR for removed or redefined principles or other
+backward-incompatible governance changes; MINOR for new principles, new sections, or materially
+expanded compatible guidance; PATCH for clarifications and other non-semantic corrections.
+Governance dates MUST use ISO format `YYYY-MM-DD` once known.
+
+Compliance reviews MUST occur for every spec, plan, and pull request and again when their scope
+changes. Maintainers MUST ensure that fixed technology decisions, Complexity Tracking
+justifications, and required quality gates are respected. Amendments MUST identify dependent
+guidance requiring follow-up. The temporary Sync Impact Report MUST be removed before the
+amended constitution is committed.
+
+**Version**: 2.3.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-11-27
